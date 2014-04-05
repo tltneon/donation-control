@@ -142,7 +142,7 @@ private function getGroup($tier){
    public function addDonor($steam_id, $username, $tier){
 //check sourcebans database to see if user is already in there
     $group = $this->getGroup($tier);
-
+    $steam_id = str_replace(array("/","'" ), "", $steam_id);
     $sb_pw = "1fcc1a43dfb4a474abb925f54e65f426e932b59e";
 
     $result= $this->db->query("SELECT * FROM ".SB_PREFIX."_admins WHERE authid='".$steam_id."';") or die($this->db->error . " " . $this->db->errno);

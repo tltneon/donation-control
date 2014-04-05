@@ -5,7 +5,6 @@ include_once 'includes/config.php';
 include_once 'includes/class_lib.php';
   $found_user = false;
   $timestamp = date('U');
-  $cacheExpire = cache_time * 86400;
 if (PLAYER_TRACKER) {
 
     $mysqliD = new mysqli(DB_HOST,DB_USER,DB_PASS,DONATIONS_DB);
@@ -13,7 +12,7 @@ if (PLAYER_TRACKER) {
     $ConvertID = new SteamIDConvert;
     $userip = $_SERVER['REMOTE_ADDR'];
 
-    $result = $mysqliD->query("SELECT * FROM `player_analytics` WHERE ip='". $userip . "'ORDER BY id DESC LIMIT 0,1;")or die("Failed to connect to donations database");
+    $result = $mysqliD->query("SELECT * FROM `player_tracker` WHERE playerip='". $userip . "';")or die("Failed to connect to donations database");
 
     function getXML($steam_link_xml, $steamid,$timestamp){
       $mysqliC = new mysqli(DB_HOST,DB_USER,DB_PASS,DONATIONS_DB);
@@ -25,7 +24,6 @@ if (PLAYER_TRACKER) {
             $avatarmedium = $xml->players->player->avatarmedium;
             $avatarfull = $xml->players->player->avatarfull;
             $personaname =$xml->players->player->personaname;
-            $personaname = $mysqliC->escape_string($personaname);
             $steamid64 = $xml->players->player->steamid;
             $steam_link = $xml->players->player->profileurl;
             //update cache database
@@ -57,8 +55,8 @@ if (PLAYER_TRACKER) {
 
           $row = $result->fetch_array(MYSQLI_ASSOC);
 
-              $playername = $row['name'];
-              $steamid = $row['auth'];
+              $playername = $row['playername'];
+              $steamid = $row['steamid'];
 
               $found_user = true;
 
@@ -66,12 +64,14 @@ if (PLAYER_TRACKER) {
               $steam_link_xml = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" . API_KEY . "&format=xml&steamids=" . $steamid64;
 
             $cacheReturn = $mysqliD->query("SELECT * FROM `cache` WHERE steamid ='" . $steamid ."';");
-              //$cacheReturn = mysql_query($chkCacheSQL);
+            
                 if($cacheReturn->num_rows > 0) {
 
                   $cacheResult = $cacheReturn->fetch_array(MYSQLI_ASSOC);
 
-                  if($cacheResult['timestamp'] > $cacheExpire){
+                  $cacheExpire = (cache_time * 86400) + $cacheResult['timestamp'];
+
+                  if($timestamp < $cacheExpire){
 
                     //cache still valid
 
@@ -84,11 +84,12 @@ if (PLAYER_TRACKER) {
 
                     getXML($steam_link_xml, $steamid,$timestamp);
                   }
-                  
+
                 }else{
                   //nothing in cache, getting stuff
                   getXML($steam_link_xml,$steamid,$timestamp);
                 }
+
             
         }
 

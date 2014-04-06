@@ -55,8 +55,8 @@ if (PLAYER_TRACKER) {
 
           $row = $result->fetch_array(MYSQLI_ASSOC);
 
-              $playername = $row['playername'];
-              $steamid = $row['steamid'];
+              $playername = $row['name'];
+              $steamid = $row['auth'];
 
               $found_user = true;
 

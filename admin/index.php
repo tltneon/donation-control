@@ -11,8 +11,8 @@ $log = new log;
 	// To protect MySQL injection (more detail about MySQL injection)
 	$Suser_name = stripslashes($_POST['user_name']);
 	$password = sha1(sha1(SB_SALT . $password));
-	//$Suser_name = $mysqliS->real_escape_string($Suser_name);
-	//$password = $mysqliS->real_escape_string($password);
+	$Suser_name = $mysqliS->real_escape_string($Suser_name);
+	$password = $mysqliS->real_escape_string($password);
 
 	$sql="SELECT * FROM ".SB_PREFIX."_admins WHERE user='{$Suser_name}' and password='{$password}' and srv_group = '".SB_ADMINS."';";
 	//echo "SELECT * FROM ".SB_PREFIX." WHERE username='{$Suser_name}' and password='{$password}' and srv_group = '".SB_ADMINS."';";

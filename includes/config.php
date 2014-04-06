@@ -1,5 +1,5 @@
 <?php
-/*Donations Control version 2.0 by NineteenEleven. 
+/*Donations Control version 2.1.5 by NineteenEleven. 
 *http://nineteeneleven.info
 *if you find this helpful please consider donating.
 *
@@ -121,5 +121,5 @@ define('SB_PASS', DB_PASS);
 }
 
 //Please consider donating before removing/changing the footer http://nineteeneleven.info
-$footer = "<div id='footer' style='background-color:black;border-radius:10px;padding:10px;margin:5px;color:white;position:fixed;bottom:0px;width:97%;z-index:99;'> Powered by <a href='http://nineteeneleven.info' target='_blank' onmouseover=\"this.style.backgroundColor='red'\" onmouseout=\"this.style.backgroundColor=''\">NineteenEleven</a></div>";
+$footer = "<div id='footer' style='background-color:black;border-radius:10px;padding:10px;margin:5px;color:white;position:fixed;bottom:0px;width:97%;z-index:99;'>Donations Control 2.1.5 Powered by <a href='http://nineteeneleven.info' target='_blank' onmouseover=\"this.style.backgroundColor='red'\" onmouseout=\"this.style.backgroundColor=''\">NineteenEleven</a></div>";
 ?>

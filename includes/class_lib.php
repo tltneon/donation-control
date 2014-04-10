@@ -54,10 +54,15 @@ class log{
         }
     }
     public function logAction($data){
-        $error = fopen($this->dir.'action.log', 'a');
-        fwrite($error, date('m/j/Y g:i:s A') ."|" . $data ."|". $_SERVER['SCRIPT_NAME'] .  "\r\n") ;
-        fclose($error);
+        $action = fopen($this->dir.'action.log', 'a');
+        fwrite($action, date('m/j/Y g:i:s A') ."|" . $data ."|". $_SERVER['SCRIPT_NAME'] .  "\r\n") ;
+        fclose($action);
     }
+    public function logBot($data){
+        $bot = fopen($this->dir.'bot.log', 'a');
+        fwrite($bot, date('m/j/Y g:i:s A') .": " . $data . "\r\n") ;
+        fclose($bot);
+    }    
     public function getLog($log){
         return file($this->dir.$log);
 
@@ -77,6 +82,7 @@ class SourceBans{
        mysqli_close($this->db);
     }
     public function queryServers($query){
+        require_once '../scripts/rcon_code.php';
         $result = $this->db->query("SELECT * FROM sb_servers");
             while($server = $result->fetch_array(MYSQLI_ASSOC)){
                 $srcds_rcon = new srcds_rcon();
@@ -206,7 +212,8 @@ private function getGroup($tier){
 
 
 class tools{
-    
+
+
     public function convertToHoursMins($time, $format = '%d:%d') {
         settype($time, 'integer');
         if ($time < 1) {
@@ -215,7 +222,7 @@ class tools{
         $hours = floor($time/60);
         $minutes = $time%60;
         return sprintf($format, $hours, $minutes);
-    }    
+    }        
     public function dollaBillz($data){
         if (strpos($data, "$") === 0) {
           return substr($data, 1);

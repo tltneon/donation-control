@@ -94,6 +94,7 @@ if (!$fp)
         //strip the username of special chars and escape  it for mysql
         $username =$tools->cleanUser($username);       
         $username = $mysqliD->real_escape_string($username);
+        $username = str_replace("|", "", $username);
         $steamid_user = $mysqliD->real_escape_string($steamid_user);        
         fwrite($log, "Steam ID: " . $steamid_user." (". $username . ")\r\n"."amount: " . $amount . "\r\n"."Sign Up Date: " . $sign_up_date . "\r\n".
             "Days Purchased: " . $days_purchased . "\r\n"."Email: " . $email . "\r\n"."Transaction ID: " . $txn_id . "\r\n".
@@ -242,7 +243,6 @@ if (!$fp)
                 $subject = "New \${$amount} donation from {$username}";
                 $mailHeader = "From: ". $mail['name'] . " <" . $mail['email'] . ">\r\n";
 
-                ini_set( $email, $recipient); // for windows mail servers
 
                 if ($mail['useBCC']) {
                     $to = $mail['recipient'] .', ' . $mail['BCC'];

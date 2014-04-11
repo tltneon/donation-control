@@ -20,12 +20,12 @@ if (PLAYER_TRACKER) {
 
       $xml = @simplexml_load_file($steam_link_xml);
         if(!empty($xml)) {
-            $avatar = $xml->players->player->avatar;
-            $avatarmedium = $xml->players->player->avatarmedium;
-            $avatarfull = $xml->players->player->avatarfull;
-            $personaname =$xml->players->player->personaname;
-            $steamid64 = $xml->players->player->steamid;
-            $steam_link = $xml->players->player->profileurl;
+            $avatar = $mysqliC->real_escape_string($xml->players->player->avatar);
+            $avatarmedium = $mysqliC->real_escape_string($xml->players->player->avatarmedium);
+            $avatarfull = $mysqliC->real_escape_string($xml->players->player->avatarfull);
+            $personaname = $mysqliC->real_escape_string($xml->players->player->personaname);
+            $steamid64 = $mysqliC->real_escape_string($xml->players->player->steamid);
+            $steam_link = $mysqliC->real_escape_string($xml->players->player->profileurl);
             //update cache database
             $mysqliC->query("INSERT INTO `cache` (steamid,
                                                     avatar,
@@ -113,8 +113,9 @@ $mysqliD->close();
     print("<body id='original'>");
     print("<style type=\"text/css\">#infobox{font-size: 12px;}</style>");
     print("<center>");
-    print("<input type=\"image\" src=\"images/btn_donateCC_LG.gif\" form=\"donate_form\" />");
-    print("<form action=\"donate.php\" target=\"blank\" id=\"donate_form\" method=\"post\">");
+    print("<form action=\"donate.php\" target=\"blank\" id=\"donateForm\" method=\"post\">");
+    print("<input type=\"image\" src=\"images/btn_donateCC_LG.gif\" form=\"donateForm\" />");
+    print("<input type=\"hidden\" name=\"donateForm\" value=\"submit\" />"); 
     print("<p>Amount: $<input type=\"text\" name=\"amount\" size=\"5\" class=\"inputbox\" value=\"5\" required=\"true\"></p>");
     if(TIERED_DONOR){
           print("<input type=\"radio\" name=\"tier\" value=\"1\" checked =\"1\" id=\"tier1\">".$group1['name']." <input type=\"radio\" name=\"tier\" value=\"2\" id=\"tier2\">".$group2['name']."<br />");
@@ -144,8 +145,8 @@ $mysqliD->close();
   print("<body>");
   print("<style type=\"text/css\">#infobox{font-size: 12px;}</style>");
   print("<center>");
-  print("<input type=\"image\" src=\"images/btn_donateCC_LG.gif\" form=\"donate_form\" />");
-  print("<form action=\"donate.php\" target=\"blank\" id=\"donate_form\" method=\"post\">");
+  print("<input type=\"image\" src=\"images/btn_donateCC_LG.gif\" form=\"donateForm\" />");
+  print("<form action=\"donate.php\" target=\"blank\" id=\"donateForm\" method=\"post\">");
   print("<p>Amount: $<input type=\"text\" id=\"paypalamount\" name=\"amount\" size=\"5\" class=\"inputbox\" value=\"5\" required=\"true\"></p>");
   if(TIERED_DONOR){
         print("<input type=\"radio\" name=\"tier\" value=\"1\" checked =\"1\" id=\"tier1\">".$group1['name']." <input type=\"radio\" name=\"tier\" value=\"2\" id=\"tier2\">".$group2['name']."<br />");

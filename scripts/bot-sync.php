@@ -1,4 +1,17 @@
 <?php
+/*
+CREATE TABLE IF NOT EXISTS `donations` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `steamId` varchar(24) NOT NULL,
+  `itemId` int(10) unsigned NOT NULL,
+  `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `processed` tinyint(4) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `steamId` (`steamId`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+*/
+
+
 define('NineteenEleven', TRUE);
 require_once'../includes/config.php';
 require_once '../includes/class_lib.php';

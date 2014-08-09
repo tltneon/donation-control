@@ -1,60 +1,76 @@
 <?php
+
 //This script will query the database and remove all expired donors
 //set up with cron to call @daily
 define('NineteenEleven', TRUE);
 require_once'../includes/config.php';
-require_once '../includes/class_lib.php';
-require_once 'rcon_code.php';
-$sb = new SourceBans;
-$tools = new tools;
+require_once ABSDIR . 'includes/class_lib.php';
+require_once ABSDIR . 'scripts/rcon_code.php';
 $sysLog = new log;
-$mysqliD = new mysqli(DB_HOST,DB_USER,DB_PASS,DONATIONS_DB)or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno));
+try {
+    $sb = new SourceBans;
+} catch (Exception $ex) {
+    $sysLog->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
+    die();
+}
 
+$log = fopen(ABSDIR . 'admin/logs/Remove-Expired-' . date('m-d-Y_G-i-s') . '.log', "a");
 
-$log=fopen('../admin/logs/Remove-Expired-'.date('m-d-Y_G-i-s'). '.log', "a");
-
-$activated = "2";
 $today = date('U');
+$tommorow = $today + 1;
+$in5days = $today + (86400 * 8);
+
 $query_sb = false;
-$i=0;
+$i = 0;
 //query database
-$sql = "SELECT * FROM donors WHERE expiration_date <= '" . $today . "' AND `activated` = 1;";
-//$sql = "SELECT steam_id, expiration_date FROM donors WHERE 1";
+foreach ($sb->ddb->query("SELECT * FROM donors WHERE expiration_date <= '$today' AND `activated` = 1;") as $donor) {
+    $i++;
 
-$result = $mysqliD->query($sql) or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno));
-while($donor = $result->fetch_array(MYSQLI_ASSOC)){
-		$i++;
-
-		$steam_id = $donor['steam_id'];
-		$username = $donor['username'];
-		$tier = $donor['tier'];
-		//change $activated
-		$mysqliD->query("UPDATE `donors` SET `activated` = '{$activated}' WHERE `steam_id` = '{$steam_id}';")or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno));
-		//turn off sourcebans
-			if($sb->removeDonor($steam_id,$tier)){
-				$query_sb = true;
-				fwrite($log, "$username removed from sourcebans successfully\r\n");
-				$sysLog->logAction("AUTOMATIC ACTION: $username Removed (Perks Expired)");
-			}else{
-				fwrite($log, "Something went wrong with removing $username from sourcebans\r\n");
-			}
-			if(TIERED_DONOR&&CCC){
-				@$mysqliD->query("DELETE FROM `custom_chatcolors` WHERE identity ='" . $steam_id . "';");
-			}
+    $steam_id = $donor['steam_id'];
+    $username = $donor['username'];
+    $tier = $donor['tier'];
+    //change $activated
+    $mysqliD->query("UPDATE `donors` SET `activated` = '2' WHERE `steam_id` = '{$steam_id}';")or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno));
+    //turn off sourcebans
+    try {
+        $sb->removeDonor($steam_id, $tier);
+        $query_sb = true;
+        fwrite($log, "$username removed from sourcebans successfully\r\n");
+        $sysLog->logAction("AUTOMATIC ACTION: $username Removed (Perks Expired)");
+        $group = $sb->getGroupInfo($tier);
+    } catch (Exception $ex) {
+        fwrite($log, "Something went wrong with removing $username from sourcebans\r\n");
+    }
+    if ($group['ccc_enabled']) {
+        @$sb->ddb->query("DELETE FROM `custom_chatcolors` WHERE identity ='" . $steam_id . "';");
+    }
 }
-
-
-
-if ($query_sb) {
-	if($sb->queryServers('sm_reloadadmins')){
-		fwrite($log, "Servers Rehashed\r\n");
-	}
-}
-
 fwrite($log, $i . " Users expired\r\n");
-$mysqliD->close();
-unset($mysqliD);
-unset($sb);
+if ($query_sb) {
+    if ($sb->queryServers('sm_reloadadmins')) {
+        fwrite($log, "Servers Rehashed\r\n");
+    }
+}
+
+
+
+foreach ($sb->ddb->query("SELECT * FROM donors WHERE expiration_date BETWEEN '$tommorow' AND '$in5days' AND `activated` = 1;") as $donor) {
+    //send email
+    if (sys_email && reminder_email) {
+
+        $mail_body = sprintf($reminder['subject'], $donor['username']);
+        $subject = sprintf($reminder['subject'], $donor['username'], date('m/j/Y', $donor['expiration_date']));
+        $mailHeader = "From: " . $mail['name'] . " <" . $mail['email'] . ">\r\n";
+
+        if (DEBUG) {
+            $to = 'brewskii187@gmail.com';
+        } else {
+            $to = $donor['email'];
+        }
+        @mail($to, $subject, $mail_body, $mailHeader);
+    }
+}
+
+
 fwrite($log, "All done here, closing log file....good bye.");
 fclose($log);
-?>

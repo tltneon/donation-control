@@ -1,278 +1,328 @@
 <?php
+
 define('NineteenEleven', TRUE);
 require_once'../includes/config.php';
-require_once '../includes/class_lib.php';
-require_once 'rcon_code.php';
-$ConvertID = new SteamIDConvert;
-$sb = new SourceBans;
-$tools = new tools;
+require_once ABSDIR . 'includes/LoggerClass.php';
+require_once ABSDIR . 'includes/SourceBansClass.php';
+require_once ABSDIR . 'includes/SteamClass.php';
+require_once ABSDIR . 'scripts/rcon_code.php';
+
 $sysLog = new log;
-$mysqliD = new mysqli(DB_HOST,DB_USER,DB_PASS,DONATIONS_DB)or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno ." Line Number: ". __LINE__));
+$sb = new sb;
 
-
-$log=fopen('../admin/logs/IPN-'.date('d-m-Y_G-i-s').'.log', "a");
+$log = fopen(ABSDIR . 'admin/logs/IPN-' . date('d-m-Y_G-i-s') . '.log', "a");
 
 $req = 'cmd=_notify-validate';
- 
+
 $header = "POST /cgi-bin/webscr HTTP/1.0\r\n";
 $header .= "Content-Type: application/x-www-form-urlencoded\r\n";
 $header .= "Content-Length: " . strlen($req) . "\r\n\r\n";
 if (PP_SANDBOX) {
-    $fp = @fsockopen ('ssl://sandbox.paypal.com', 443, $errno, $errstr, 30);
-}else{
-    $fp = @fsockopen ('ssl://www.paypal.com', 443, $errno, $errstr, 30);
+    $fp = @fsockopen('ssl://sandbox.paypal.com', 443, $errno, $errstr, 30);
+} else {
+    $fp = @fsockopen('ssl://www.paypal.com', 443, $errno, $errstr, 30);
 }
-if (!$fp)
-    { 
-        fclose($log);
-        die($sysLog->logError('Error contacting PayPal. Probaby some l33t h4x3r.'));
+if (!$fp) {
+    fclose($log);
+    die($sysLog->logError('Error contacting PayPal. Probaby some l33t h4x3r.'));
+} else {
+//if (true) { //used for debuggin
+
+    fputs($fp, $header . $req);
+
+    fwrite($log, date('m/j/Y g:i:s A') . ": PayPal IPN recieved \r\n");
+
+    $userInfo = explode("|", $_POST['custom']);
+    $steamid_user = $userInfo[0];
+    $amount = $_POST['mc_gross'];
+    $sign_up_date = date('U');
+
+    $tier = $userInfo[1];
+    $email = $_POST['payer_email'];
+    $txn_id = $_POST['txn_id'];
+
+    try {
+        $sb = new sb;
+        $group = $sb->getGroupInfo($tier);
+    } catch (Exception $ex) {
+        fwrite($log, date('m/j/Y g:i:s A') . ": " . $ex->getMessage() . " Line:" . $ex->getLine() . " \r\n");
+        fwrite($log, "Steam ID:$steamid_user\r\n amount:$amount\r\n Sign Up Date:$sign_up_date\r\n" .
+                "Tier:$tier\r\n Email:$email\r\n Transaction ID:$txn_id\r\n");
+        die();
     }
-    else
-    {
-        fputs ($fp, $header . $req);
-
-        fwrite($log, date('m/j/Y g:i:s A') .": PayPal IPN recieved \r\n");
-
-        $userInfo = explode("?", $_POST['custom']);
-        $steamid_user = $userInfo[0];
-        $amount = $_POST['mc_gross'];
-        $sign_up_date = date('U');
-        if (TIERED_DONOR) {
-           $tier = $userInfo[5];
-           if ($tier=="1") {
-                $srv_group = $group1['name'];
-                $group_id = $group1['group_id'];
-                $srv_group_id = $group1['srv_group_id'];
-                $server_id = $group1['server_id'];
-                $days_purchased = round(($amount * $group1['multiplier']));
-           }else{
-                $srv_group = $group2['name'];
-                $group_id = $group2['group_id'];
-                $srv_group_id = $group2['srv_group_id'];
-                $server_id = $group2['server_id'];
-                $days_purchased = round(($amount * $group2['multiplier']));
-                if (CCC) {
-                    $nameColor = str_replace("#", "", $_POST['option_name1']);
-                    $chatColor = str_replace("#", "", $_POST['option_name2']);                   
-                }
-
-           }
-        }else{
-            $srv_group = $group1['name'];
-            $group_id = $group1['group_id'];
-            $srv_group_id = $group1['srv_group_id'];
-            $server_id = $group1['server_id'];
-            $tier = '1';
-            $days_purchased = round(($amount * $group1['multiplier']));
+    $srv_group = $group['name'];
+    $group_id = $group['group_id'];
+    $srv_group_id = $group['srv_group_id'];
+    $server_id = $group['server_id'];
+    $days_purchased = round(($amount * $group['multiplier']));
+    $dp_string = "+" . $days_purchased . " days";
+    $expire = strtotime($dp_string, $sign_up_date);
+    try {
+        $steam_id = new SteamIDConvert($steamid_user);
+        $steam_id->SteamIDCheck();
+        $steamID64 = $steam_id->steamId64;
+        $steam_link = $steam_id->steam_link;
+        $steamid_user = $steam_id->steam_id;
+        $username = $steam_id->playerSummaries->response->players[0]->personaname;
+    } catch (Exception $ex) {
+        fwrite($log, date('m/j/Y g:i:s A') . ": " . $ex->getMessage() . " Line:" . $ex->getLine() . " \r\n");
+        $sysLog->logError('New donation taken but unable to verify Steam ID, aborting.');
+        $username = 'Unknown';
+        $steamID64 = 'Unknown';
+        $steam_link = 'Unknown';
+        if (FORCE_IPN) {
+            $steamid_user = $userInfo[0];
+            $errors = true;
+        } else {
+            $steamid_user = $userInfo[0] . '(UNVERIFIED)';
+            $killScript = true;
         }
-        $n= "+".$days_purchased . " days";
-        $expire = strtotime($n,$sign_up_date);
-        $email = $_POST['payer_email'];
-        $txn_id = $_POST['txn_id'];
-        $steamArray= $ConvertID->SteamIDCheck($steamid_user);
-        $steamID64 = $steamArray['steamID64'];
-        $steam_link = $steamArray['steam_link'];
-        $steam_link_xml = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" . API_KEY . "&format=xml&steamids=" . $steamID64;
-        $tag = $group2['name'];
-    
+    }
+    $tag = $group['name'];
 
+    if (CCC && $group['ccc_enabled']) {
+        if (isset($_POST['option_name1']) && isset($_POST['option_name2'])) {
 
- $cacheReturn=$mysqliD->query("SELECT * FROM `cache` WHERE steamid ='" . $steamid_user ."';")or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno ." Line Number: ". __LINE__));
-        if($cacheReturn->num_rows > 0) {
-            $cacheResult = $cacheReturn->fetch_array(MYSQLI_ASSOC);
-            $username = $cacheResult['personaname'];
-         fwrite($log, "grabbed player name from cache. \r\n");
-        }else{
+            $nameColor = str_replace("#", "", $_POST['option_name1']);
+            $chatColor = str_replace("#", "", $_POST['option_name2']);
+        } else {
+            $nameColor = 'FFFF00';
+            $chatColor = '009933';
+        }
+        $useCCC = true;
+    } else {
+        $useCCC = false;
+    }
 
-            $xml = @simplexml_load_file($steam_link_xml)
-            or $username = "ERROR FINDING USER";
-            if(!empty($xml)) {
-            $username = $xml->players->player->personaname;
-            fwrite($log, "grabbed player name from Steam Servers. \r\n");
-            }
-        } 
-        //strip the username of special chars and escape  it for mysql
-        $username =$tools->cleanUser($username);       
-        $username = $mysqliD->real_escape_string($username);
-        $username = str_replace("|", "", $username);
-        $steamid_user = $mysqliD->real_escape_string($steamid_user);        
-        fwrite($log, "Steam ID: " . $steamid_user." (". $username . ")\r\n"."amount: " . $amount . "\r\n"."Sign Up Date: " . $sign_up_date . "\r\n".
-            "Days Purchased: " . $days_purchased . "\r\n"."Email: " . $email . "\r\n"."Transaction ID: " . $txn_id . "\r\n".
-            "XML Steam Link: " . $steam_link_xml . "\r\n");
-        if (TIERED_DONOR&&CCC&&$tier=='2') {
-            fwrite($log, "Tag: {$tag}\r\nName Color: {$nameColor}\r\nChat Color: {$chatColor}\r\n");
+    fwrite($log, "Steam ID: $steamid_user($username)\r\n amount: $amount\r\n Sign Up Date: $sign_up_date\r\n" .
+            "Days Purchased: $days_purchased\r\n Email: $email\r\n Transaction ID: $txn_id\r\n Tier: $tier");
+    if ($useCCC) {
+        fwrite($log, "Tag: $tag\r\nName Color: $nameColor\r\nChat Color: $chatColor\r\n");
+    }
+    if (isset($killScript)) {
+        die();
+    }
+    //checking if donor already exists
+    try {
+        $stmt = $sb->ddb->prepare("SELECT * FROM `donors` WHERE steam_id=?");
+        $stmt->bindParam(1, $steamid_user, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $ex) {
+        if (FORCE_IPN) {
+            $errors = true;
+            fwrite($log, date('m/j/Y g:i:s A') . ": " . $ex->getMessage() . " Line:" . $ex->getLine() . " \r\n");
+            fwrite($log, "Attempting insertion as new donor.\r\n");
+        } else {
+            fwrite($log, date('m/j/Y g:i:s A') . ": " . $ex->getMessage() . " Line:" . $ex->getLine() . " \r\n");
+            die();
+        }
+    }
+    //if donor exists change the purchase dates around.
+    if ($stmt->rowCount() == 1 && isset($row) && !empty($row)) {
+
+        //$n = "+" . $days_purchased . " days";
+
+        if ($row['tier'] != $tier && $row['activated'] == "1") { //check if donor is changing level.
+            $grpChange = true;
+
+            $now = date('U');
+
+            $oldGroup = $sb->getGroupInfo($row['tier']);
+
+            $cDaysLeft = round(($row['expiration_date'] - $now) / 86400, 2, PHP_ROUND_HALF_UP); //amount of days left until perks expire
+
+            $change = round($cDaysLeft / $oldGroup['multiplier'], 2, PHP_ROUND_HALF_UP); //prorated dollar amount
+
+            $extraDays = round($change * $group['multiplier'], 2, PHP_ROUND_HALF_UP); // how many days to be added to new level
+
+            $expiration_date = round(($days_purchased + $extraDays) * 86400, 0, PHP_ROUND_HALF_UP) + $now;
+        } elseif ($row['activated'] == "2") {
+            $expiration_date = $expire;
+        } else {
+            $expiration_date = strtotime($dp_string, $row['expiration_date']);
         }
 
-        //checking if donor already exists
+        unset($dp_string);
+        $total_amount = $row['total_amount'];
+        $total_amount = $total_amount + $amount;
+        $renewal_date = $sign_up_date;
+        $current_amount = $amount;
+        $user_id = $row['user_id'];
+        $last_txn_id = $row['txn_id'];
+        $activated = $row['activated'];
+    }
+    if (isset($stmt)) {
+        unset($stmt);
+    }
+    if (isset($row)) {
+        unset($row);
+    }
 
-        $result = $mysqliD->query("SELECT user_id,total_amount,expiration_date,txn_id,activated FROM donors WHERE steam_id = '{$steamid_user}';")or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno ." Line Number: ". __LINE__));
-        if($result){
-            $row = $result->fetch_array(MYSQLI_ASSOC);
-            $expDate = $row['expiration_date'];
-            $n = "+".$days_purchased . " days";
-            if ($row['activated']=="2") {
-                $expiration_date = $expire;
-            }else{
-                $expiration_date = strtotime($n,$expDate);
-            }
-            unset($n);
-            $total_amount = $row['total_amount'];
-            $total_amount = $total_amount + $amount;
-            $renewal_date = $sign_up_date;
-            $current_amount = $amount;
-            $user_id = $row['user_id'];
-
-        }else{exit(fwrite($log,"Something went shit nuts with the database.\r\n"));}
-        
-            if (isset($user_id)) {
-                fwrite($log, "User is already in database! repeat IPN?\r\n");
-                if($txn_id != $row['txn_id']){
-                    fwrite($log, "Nope, just a repeat donor\r\n");
-                    $insert_sql="UPDATE `donors` SET `renewal_date` = '{$renewal_date}', 
-                                                    `current_amount` = '{$current_amount}', 
-                                                    `total_amount` = '{$total_amount}', 
-                                                    `expiration_date` = '{$expiration_date}', 
-                                                   `activated` = '1',
-                                                   `txn_id` = '{$txn_id}',
-                                                   `tier` = '{$tier}'
-                                                    WHERE `steam_id` = '{$steamid_user}';";
-
-                }else{
-                    die(fwrite($log,"YEP! fuckin PayPal! Duplicate Transaction ID, GET OUT OF HERE !!!!.\r\n"));
-                }
-
+    // if we have a repeat donor check if its just a duplicate IPN from PayPal.
+    if (isset($user_id)) {
+        fwrite($log, "User is already in database! repeat IPN?\r\n");
+        if ($txn_id != $last_txn_id) {
+            fwrite($log, "Nope, just a repeat donor\r\n");
+            if ($activated == '1') {
+                $sbAdd = false;
             } else {
-                //not in database, new donor
-                $insert_sql = "INSERT INTO donors (username,
-                                                    steam_id,
-                                                    sign_up_date,
-                                                    email,
-                                                    renewal_date,
-                                                    current_amount,
-                                                    total_amount,
-                                                    expiration_date,
-                                                    steam_link,
-                                                    activated,
-                                                    txn_id,
-                                                    tier) 
-                                                     VALUES ('{$username}', 
-                                                        '{$steamid_user}', 
-                                                        '{$sign_up_date}', 
-                                                        '{$email}', 
-                                                        '0',
-                                                        '{$amount}',
-                                                        '{$amount}',
-                                                        '{$expire}',
-                                                        '{$steam_link}', 
-                                                        '1', 
-                                                        '{$txn_id}',
-                                                        '{$tier}');";
+                $sbAdd = true;
             }
-            $mysqliD->query($insert_sql) or die($sysLog->logError($mysqliD->error . " " . $mysqliD->errno ." Line Number: ". __LINE__));
-            unset($insert_sql);
-            if(TIERED_DONOR&&CCC&&$tier=='2'){
+            //Update the donors information.
+            try {
+                $stmt = $sb->ddb->prepare("UPDATE `donors` SET `renewal_date` = :renewal_date,
+                        `current_amount` = :current_amount,
+                        `total_amount` = :total_amount,
+                        `expiration_date` = :expiration_date,
+                        `activated` = '1',
+                         `txn_id` = :txn_id,
+                         `tier` = :tier
+                         WHERE `steam_id` = :steamid_user;");
 
-                $result = $mysqliD->query("SELECT * FROM `custom_chatcolors` WHERE identity = '{$steamid_user}';");
-                if ($result->num_rows >= 1) {
-                    @$mysqliD->query("DELETE FROM `custom_chatcolors` WHERE identity = '{$steamid_user}';");
+                $stmt->execute(array(':renewal_date' => $renewal_date,
+                    ':current_amount' => $current_amount,
+                    ':total_amount' => $total_amount,
+                    ':expiration_date' => $expiration_date,
+                    ':txn_id' => $txn_id,
+                    ':tier' => $tier,
+                    ':steamid_user' => $steamid_user
+                ));
+                if ($stmt->rowCount() != 1) {
+                    throw new Exception("Something went wrong updating the donor in the database");
                 }
-                
-                $ccc_sql = "INSERT INTO `custom_chatcolors` (`tag`, `identity`, `namecolor`, `textcolor`) VALUES ('{$tag}','{$steamid_user}','{$nameColor}','{$chatColor}');";
-                if($mysqliD->query($ccc_sql)){
-                
-                    if($sb->queryServers("sm_reloadccc")){
-                        fwrite($log, "reloaded CCC successfully.\r\n");
-                    }else{
-                        fwrite($log, "reloading CCC failed.\r\n");
-                    }
-                }else{
-                    $sysLog->logError($mysqliD->error . " " . $mysqliD->errno ." Line Number: ". __LINE__);
-                }
-                unset($ccc_sql); 
+                unset($stmt);
+            } catch (Exception $ex) {
+                fwrite($log, date('m/j/Y g:i:s A') . ": " . $ex->getMessage() . " Line:" . $ex->getLine() . " \r\n");
+                die();
             }
-            $mysqliD->close();
-            fwrite($log, "Finished inserting into the donor database, preparing for sourcebans insertion.\r\n");
+        } else {
+            fwrite($log, "YEP! fuckin PayPal! Duplicate Transaction ID, GET OUT OF HERE !!!!.\r\n");
+            die();
+        }
+    } else {
+        //not in database, new donor
+        $sbAdd = true;
+        try {
+            $amount2 = $amount;
+            $stmt = $sb->ddb->prepare("INSERT INTO donors (username,steam_id,sign_up_date,email,renewal_date,current_amount,total_amount,expiration_date,steam_link,activated,txn_id,tier)
+                        VALUES (:username,:steamid_user, :sign_up_date, :email, '0',:amount,:amount2,:expire,:steam_link, '1', :txn_id,:tier);");
 
-                    $mysqliS = new mysqli(SB_HOST,SB_USER,SB_PASS,SOURCEBANS_DB)or die($sysLog->logError($mysqliS->error . " " . $mysqliS->errno ." Line Number: ". __LINE__));
-
-                    //check sourcebans database to see if user is already in there
-                    
-                    $result = $mysqliS->query("SELECT * FROM `".SB_PREFIX."_admins` WHERE authid='".$steamid_user."';") or die($sysLog->logError($mysqliS->error . " " . $mysqliS->errno ." Line Number: ". __LINE__));
-
-                        if($result){
-
-                            $row = $result->fetch_array(MYSQLI_ASSOC);
-                            $sb_aid = $row['aid'];
-
-                            //$result->free();
-
-                        } 
-                    if (!isset($sb_aid)) {
-
-                        //if not, PUT EM IN!
-                                $sb_pw = "1fcc1a43dfb4a474abb925f54e65f426e932b59e";
-
-                                if($mysqliS->query("INSERT INTO `" . SOURCEBANS_DB . "` . `".SB_PREFIX."_admins` (user,authid,password,gid,extraflags,immunity,srv_group) VALUES ('{$username}', '{$steamid_user}', '{$sb_pw}' , '-1' , '0' , '0', '{$srv_group}');")){
-                                     fwrite($log, "inserted into sb_admins.\r\n");
-                                 }else{
-                                    die($sysLog->logError($mysqliS->error . " " . $mysqliS->errno ." Line Number: ". __LINE__));
-                                }
-
-                                if($admin_id = $mysqliS->insert_id){
-                                     fwrite($log, "got new id.\r\n");
-                                }
-
-                                if($mysqliS->query("INSERT INTO `" . SOURCEBANS_DB . "` . `".SB_PREFIX."_admins_servers_groups` (admin_id,group_id,srv_group_id,server_id) VALUES('{$admin_id}', '{$group_id}', '{$srv_group_id}', '{$server_id}');")){
-                                     fwrite($log, "inserted into sb_admins_servers_groups.\r\n");
-                                }else{
-                                    die($sysLog->logError($mysqliS->error . " " . $mysqliS->errno ." Line Number: ". __LINE__));
-                                }
-
-                                $mysqliS->close();
-
-                                if($sb->queryServers('sm_reloadadmins')){
-                                    fwrite($log, "Sourcebans admin cache reloaded. \r\n");
-                                }
-                        }else{
-                            fwrite($log, "{$username} is alreay in sourcebans, skipping.\r\n");
-                        }
-                $sysLog->logAction("AUTOMATIC ACTION: $username Added (New Donation)");
-            if(sys_email){
-
-                $mail_body = "{$username} Has made a donation of \${$amount} though PayPal, and their donor perks have been automatically activated"; 
-                $subject = "New \${$amount} donation from {$username}";
-                $mailHeader = "From: ". $mail['name'] . " <" . $mail['email'] . ">\r\n";
-
-
-                if ($mail['useBCC']) {
-                    $to = $mail['recipient'] .', ' . $mail['BCC'];
-                }else{
-                    $to = $mail['recipient'];
-                } 
-                @mail($to, $subject, $mail_body, $mailHeader);
-
-
-                if ($mail['donor']) {
-                    @mail($email, $mail['donorSubject'], $mail['donorMsg'], $mailHeader);
-                }
-
-            }
-        
-        fclose ($fp);
+            $stmt->execute(array(
+                ':username' => $username,
+                ':steamid_user' => $steamid_user,
+                ':sign_up_date' => $sign_up_date,
+                ':email' => $email,
+                ':amount' => $amount,
+                ':amount2' => $amount,
+                ':expire' => $expire,
+                ':steam_link' => $steam_link,
+                ':txn_id' => $txn_id,
+                ':tier' => $tier
+            ));
+        } catch (Exception $ex) {
+            fwrite($log, date('m/j/Y g:i:s A') . ": " . $ex->getMessage() . " Line:" . $ex->getLine() . " \r\n");
+            die();
+        }
     }
+    if (isset($stmt)) {
+        unset($stmt);
+    }
+    if ($useCCC) {
+        try {
+            $stmt = $sb->ddb->prepare("SELECT * FROM `custom_chatcolors` WHERE identity = :steamid_user;");
+            $stmt->bindParam(1, $steamid_user, PDO::PARAM_STR);
+            $stmt->execute();
+            $goodToGo = true;
+        } catch (Exception $ex) {
+            fwrite($log, date('m/j/Y g:i:s A') . ": Problem getting information from CCC database, moving on. \r\n");
+            $errors = true;
+        }
+        if ($stmt->rowCount() == 1 && isset($goodToGo)) {
+            unset($stmt);
+            unset($goodToGo);
+            try {
+                $stmt = $sb->ddb->prepare("DELETE FROM `custom_chatcolors` WHERE identity = :steamid_user;");
+                $stmt->bindParam(1, $steamid_user, PDO::PARAM_STR);
+                $stmt->execute();
+                $goodToGo = true;
+            } catch (Exception $ex) {
+                fwrite($log, date('m/j/Y g:i:s A') . ": Problem deleting user from CCC database, moving on. \r\n");
+                $errors = true;
+            }
+        }
+        if (isset($goodToGo)) {
+            unset($stmt);
+            unset($goodToGo);
+            try {
+                $stmt = $sb->ddb->prepare("INSERT INTO `custom_chatcolors` (`tag`, `identity`, `namecolor`, `textcolor`) VALUES (:tag,:steamid_user,:nameColor,:chatColor);");
+                $stmt->execute(array(
+                    ':tag' => $tag,
+                    ':steamid_user' => $steamid_user,
+                    ':nameColor' => $nameColor,
+                    ':chatColor' => $chatColor
+                ));
+                $goodToGo = true;
+            } catch (Exception $ex) {
+                fwrite($log, date('m/j/Y g:i:s A') . ":Problem inserting user into CCC database, moving on. \r\n");
+                $errors = true;
+            }
+
+            if ($stmt->rowCount() == 1) {
+                if ($sb->queryServers("sm_reloadccc")) {
+                    fwrite($log, "reloaded CCC successfully.\r\n");
+                } else {
+                    fwrite($log, "reloading CCC failed.\r\n");
+                }
+            }
+        }
+    }
+
+    fwrite($log, "Finished inserting into the donor database.\r\n");
+    if ($sbAdd) {
+        fwrite($log, "Preparing for sourcebans insertion.\r\n");
+        try {
+            $sb->addDonor($steamid_user, $username, $tier);
+        } catch (Exception $ex) {
+            fwrite($log, date('m/j/Y g:i:s A') . ": " . $ex->getMessage() . " Line:" . $ex->getLine() . " \r\n");
+            if (!FORCE_IPN) {
+                die();
+            }
+        }
+    } else {
+        fwrite($log, "User is already active, skipping sourcebans.\r\n");
+    }
+    if (isset($errors)) {
+        $errors = 'with errors';
+    } else {
+        $errors = '';
+    }
+    $sysLog->logAction("AUTOMATIC ACTION: $username Added $errors(New Donation)");
+
+    if (sys_email) {
+
+        $mail_body = "{$username} Has made a donation of \${$amount} though PayPal, and their donor perks have been automatically activated";
+        $subject = "New \${$amount} donation from {$username} $errors";
+        $mailHeader = "From: " . $mail['name'] . " <" . $mail['email'] . ">\r\n";
+
+
+        if ($mail['useBCC']) {
+            $to = $mail['recipient'] . ', ' . $mail['BCC'];
+        } else {
+            $to = $mail['recipient'];
+        }
+        @mail($to, $subject, $mail_body, $mailHeader);
+
+
+        if ($mail['donor']) {
+            @mail($email, $mail['donorSubject'], $mail['donorMsg'], $mailHeader);
+        }
+    }
+
+    fclose($fp);
+}
 if (STATS) {
     @$sysLog->stats("IPN");
 }
-    $mysqliD->close();
-    $mysqliS->close();
-    unset($mysqliD);
-    unset($mysqliS);
-    unset($sb);
-    unset($tools);
-    unset($ConvertID);
-    unset($log);
-    fwrite($log, "All done here, closing log file....good bye.");
+fwrite($log, "All done here $errors, closing log file....good bye.");
 fclose($log);
-//End Paypal code
-
-?>

@@ -1,30 +1,79 @@
-<div class='content'>
-
-        <form action='show_donations.php?server_query' method='post' name='CUSTOMCOMMAND'>
-            <font class='info'><?php echo $lang->admin[0]->sq; ?></font><br>  
-            <input type='text' size='40' name='COMMAND' class='searchBox' /><input type='submit' value='Submit'>
-        </form>          
-
-
 <?php
-if (isset($_POST['COMMAND'])) {
-	$sb = new SourceBans;
-	$query = $_POST['COMMAND'];
-	
-	if(!$sb->queryServersResponse($query)){
-		echo "<h1 class='error>".$lang->admin[0]->sq4."</h1>";
-	}
-	if (STATS) {
-		@$log->stats("SQ");
-	}
-	$log->logAction(sprintf($lang->logmsg[0]->nuclear, $_SESSION['username'], $query));
-
-	unset($sb);
-}else{
-	echo "<h3><u>".$lang->admin[0]->sq1."</u></h3>";
-	echo "<p>".$lang->admin[0]->sq2."<p>";
-	echo "<p>".$lang->admin[0]->sq3."</p>";
+if (!defined('adminPage')) {
+    exit("Direct access not premitted.");
 }
 ?>
 
-</div>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <div class='rcon'>
+            <div id='rconResponse' class='rconResponse'><textarea readonly id='rconOutput'></textarea></div>
+
+            <div class="input-group">
+                <span class="input-group-addon">
+                    <select name='server' id='rconCombo'>
+                        <option value='0'>Select a server</option>
+                        <?php
+                        foreach ($sb->sdb->query("SELECT `ip`,`port`,`sid` from `" . SB_PREFIX . "_servers` WHERE 1;") as $server) {
+
+                            printf("<option value='%s'>%s</option>", $server['sid'], $server['ip'] . ":" . $server['port']);
+                        }
+                        ?>
+                    </select>
+                </span>
+                <span class="input-group-addon">
+                    <input type='checkbox' value='1' id='allServers'> Query all servers
+                </span>
+            </div>
+            <div class="input-group">
+
+                <input type='text' placeholder='Rcon command' class="form-control" id='rconCmd' />
+                <span class="input-group-btn">
+                    <button class='btn btn-default' type="button" onclick='sendRcon()' id='submitRcon'>Send Command</button>
+                </span>
+            </div>
+        </div>
+
+
+        <script>
+            $(document).ready(function() {
+                $('#rconCmd').keypress(function(e) {
+                    if (e.which == 13) { //submit on enter
+                        sendRcon();
+                    }
+                });
+            });
+
+            function sendRcon() {
+                $(document).ready(function() {
+                    var rconCmd = $('#rconCmd').val();
+                    var srvId = $('#rconCombo').val();
+                    var allSrv = $('#allServers').prop('checked');
+                    //var varToken = $('#token').val();
+                    console.log(rconCmd + " " + srvId + " " + allSrv); //debug code
+
+                    if (srvId == 0 && !allSrv) {
+                        $('#rconOutput').val('Please select a server first');
+                        return;
+
+                    }
+                    ;
+
+                    $.ajax({
+                        type: 'POST',
+                        url: 'pages/ajax/rcon.php',
+                        //data: {token: varToken, id: srvId, action: 'rcon', cmd: rconCmd, allServers: allSrv, ajax: 1},
+
+                        data: {id: srvId, action: 'rcon', cmd: rconCmd, allServers: allSrv, ajax: 1},
+                        success: function(result) {
+                            var currentText = $('#rconOutput').val();
+                            $('#rconResponse').show();
+                            currentText = currentText + '\n' + result;
+                            console.log(currentText);
+                            $('#rconOutput').val(currentText);
+                            $('#rconOutput').scrollTop($('#rconOutput')[0].scrollHeight);
+                            $('#rconCmd').val('');
+                        }});
+                });
+            }
+        </script>

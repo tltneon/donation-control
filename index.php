@@ -1,166 +1,136 @@
-<!--Written by NineteenEleven for Kablowsion Inc.-->
 <?php
 define('NineteenEleven', TRUE);
-include_once 'includes/config.php';
-include_once 'includes/class_lib.php';
-  $found_user = false;
-  $timestamp = date('U');
-if (PLAYER_TRACKER) {
-
-    $mysqliD = new mysqli(DB_HOST,DB_USER,DB_PASS,DONATIONS_DB);
-    //$SteamQuery = new SteamQuery;
-    $ConvertID = new SteamIDConvert;
-    $userip = $_SERVER['REMOTE_ADDR'];
-
-    $result = $mysqliD->query("SELECT * FROM `player_analytics` WHERE ip='". $userip . "'ORDER BY id DESC LIMIT 0,1;")or die("Player Analytics database does not exist.");
-
-    function getXML($steam_link_xml, $steamid,$timestamp){
-      $mysqliC = new mysqli(DB_HOST,DB_USER,DB_PASS,DONATIONS_DB);
-      global $avatarmedium, $personaname;
-
-      $xml = @simplexml_load_file($steam_link_xml);
-        if(!empty($xml)) {
-            $avatar = $mysqliC->real_escape_string($xml->players->player->avatar);
-            $avatarmedium = $mysqliC->real_escape_string($xml->players->player->avatarmedium);
-            $avatarfull = $mysqliC->real_escape_string($xml->players->player->avatarfull);
-            $personaname = $mysqliC->real_escape_string($xml->players->player->personaname);
-            $steamid64 = $mysqliC->real_escape_string($xml->players->player->steamid);
-            $steam_link = $mysqliC->real_escape_string($xml->players->player->profileurl);
-            //update cache database
-            $mysqliC->query("INSERT INTO `cache` (steamid,
-                                                    avatar,
-                                                    avatarmedium,
-                                                    avatarfull,
-                                                    personaname,
-                                                    timestamp,
-                                                    steamid64,
-                                                    steam_link) 
-                                            VALUES ('{$steamid}',
-                                              '{$avatar}',
-                                              '{$avatarmedium}',
-                                              '{$avatarfull}',
-                                              '{$personaname}',
-                                              '{$timestamp}',
-                                              '{$steamid64}',
-                                              '{$steam_link}' 
-                                              );")or die("Failed to update cache");
-
-
-        }
-
-      $mysqliC->close();
-      }
-
-      if($result->num_rows > 0){
-
-          $row = $result->fetch_array(MYSQLI_ASSOC);
-
-              $playername = $row['name'];
-              $steamid = $row['auth'];
-
-              $found_user = true;
-
-              $steamid64 = $ConvertID->IDto64($steamid);
-              $steam_link_xml = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" . API_KEY . "&format=xml&steamids=" . $steamid64;
-
-            $cacheReturn = $mysqliD->query("SELECT * FROM `cache` WHERE steamid ='" . $steamid ."';");
-            
-                if($cacheReturn->num_rows > 0) {
-
-                  $cacheResult = $cacheReturn->fetch_array(MYSQLI_ASSOC);
-
-                  $cacheExpire = (cache_time * 86400) + $cacheResult['timestamp'];
-
-                  if($timestamp < $cacheExpire){
-
-                    //cache still valid
-
-                    $avatarmedium = $cacheResult['avatarmedium'];
-
-                  }else{
-                    //cache expired, updating
-
-                    $mysqliD->query("DELETE FROM `cache` WHERE steamid = '".$cacheResult['steamid'] ."';");
-
-                    getXML($steam_link_xml, $steamid,$timestamp);
-                  }
-
-                }else{
-                  //nothing in cache, getting stuff
-                  getXML($steam_link_xml,$steamid,$timestamp);
-                }
-
-            
-        }
-
-$mysqliD->close();
-    print("<!DOCTYPE html>");
-    print("<html>");
-    print('<meta http-equiv="Content-Type"content="text/html;charset=UTF8">');
-    print("<head>");
-
-    //Javascript to allow gifting
-    print("<script type=\"text/javascript\">");
-    print("function gift() {document.getElementById('steamid-box').style.display = 'block';
-      document.getElementById('id-field').value = '';
-      document.getElementById('id-field').placeholder = 'Enter SteamID here';
-      document.getElementById('userid').style.display = 'none';
-      document.getElementById('infobox').style.display = 'block';
-    }");
-
-    print("</script>");
-    print("</head>");
-    print("<body id='original'>");
-    print("<style type=\"text/css\">#infobox{font-size: 12px;}</style>");
-    print("<center>");
-    print("<form action=\"donate.php\" target=\"blank\" id=\"donateForm\" method=\"post\">");
-    print("<input type=\"image\" src=\"images/btn_donateCC_LG.gif\" form=\"donateForm\" />");
-    print("<input type=\"hidden\" name=\"donateForm\" value=\"submit\" />"); 
-    print("<p>Amount: $<input type=\"text\" name=\"amount\" size=\"5\" class=\"inputbox\" value=\"5\" required=\"true\"></p>");
-    if(TIERED_DONOR){
-          print("<input type=\"radio\" name=\"tier\" value=\"1\" checked =\"1\" id=\"tier1\">".$group1['name']." <input type=\"radio\" name=\"tier\" value=\"2\" id=\"tier2\">".$group2['name']."<br />");
-    }
-      if($found_user){
-        print("<div id='steamid-box' style=\"display:none;\" ><label for='steamid_user'>Steam ID:<br /></label>");
-        print("<input type=\"text\" name=\"steamid_user\" required=\"true\" id=\"id-field\"  value=\"{$steamid}\" ></div>");
-        print("<div id=\"userid\">Welcome back {$playername} <br />");
-        print("<img src='{$avatarmedium}' style=\"border:1px solid black;border-radius:5px;\" /><br />");
-        print("<a href='#' onclick=\"gift();\"> Donate for someone else </a></div>");
-        print("<div id='infobox' style=\"display:none;\">");
-        print("<p>Acceptable formats:<br />STEAM_0:0:0000000<br />steamcommunity.com/profiles/1234567891011<br />steamcommunity.com/id/{name} or {name}<br /></p>");
-        print("</div>");
-      }else{
-        print("<label for=\"paypaloption1\">Steam ID:<br /></label><input type=\"text\" id=\"paypaloption1\" name=\"steamid_user\" required=\"true\" id=\"id-box\" placeholder=\"Please enter your SteamID\" required=\"true\" size=\"30\"></p>");
-        print("<div id='infobox'>");
-        print("<p>Acceptable formats:<br />STEAM_0:0:0000000<br />steamcommunity.com/profiles/1234567891011<br />steamcommunity.com/id/{name} or {name}<br /></p>");
-        print("</div>");
-      }
-    print("</form>");
-    print("</center>");
-    print("</body>");
-    print("</html>");
-}else{
-  print("<!DOCTYPE html>");
-  print("<html>");
-  print("<body>");
-  print("<style type=\"text/css\">#infobox{font-size: 12px;}</style>");
-  print("<center>");
-  print("<input type=\"image\" src=\"images/btn_donateCC_LG.gif\" form=\"donateForm\" />");
-  print("<form action=\"donate.php\" target=\"blank\" id=\"donateForm\" method=\"post\">");
-  print("<p>Amount: $<input type=\"text\" id=\"paypalamount\" name=\"amount\" size=\"5\" class=\"inputbox\" value=\"5\" required=\"true\"></p>");
-  if(TIERED_DONOR){
-        print("<input type=\"radio\" name=\"tier\" value=\"1\" checked =\"1\" id=\"tier1\">".$group1['name']." <input type=\"radio\" name=\"tier\" value=\"2\" id=\"tier2\">".$group2['name']."<br />");
-  }
-  print("<label for=\"paypaloption1\">Steam ID:<br /></label><input type=\"text\" id=\"paypaloption1\" name=\"steamid_user\" required=\"true\" id=\"id-box\" placeholder=\"Please enter your SteamID\" required=\"true\" size=\"30\"></p>");
-  print("<div id='infobox'>");
-  print("<p>");
-  print("Acceptable formats:<br />STEAM_0:0:0000000<br />steamcommunity.com/profiles/1234567891011<br />steamcommunity.com/id/{name} or {name}<br /></p>");
-  print("</div>");
-  print("</form>");
-  print("</center>");
-  print("</body>");
-  print("</html>");
+require_once 'includes/config.php';
+require_once ABSDIR . 'includes/SourceBansClass.php';
+echo "<!--Donations Control v" . VERSION . " written by NineteenEleven @ 1911.expert-->";
+try {
+    $sb = new sb;
+    $gotDb = true;
+} catch (Exception $ex) {
+    $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
+    $gotDb = false;
 }
 
-?>
+$found_user = false;
+$timestamp = date('U');
 
+if (PLAYER_TRACKER && $gotDb) {
+    $userip = $_SERVER['REMOTE_ADDR'];
+    try {
+        $stmt = $sb->ddb->prepare("SELECT * FROM `player_analytics` WHERE ip=? ORDER BY id DESC LIMIT 0,1;");
+        $stmt->bindParam(1, $userip, PDO::PARAM_STR);
+        $stmt->execute();
+    } catch (Exception $ex) {
+
+    }
+
+    if ($stmt->rowCount() == 1) {
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $playername = $row['name'];
+        $steam_id = $row['auth'];
+
+        $found_user = true;
+
+        //$cacheReturn = $mysqliD->query("SELECT * FROM `cache` WHERE steamid ='" . $steamid . "';");
+
+        $stmt = $sb->ddb->query("SELECT * FROM `cache` WHERE steamid ='$steam_id';");
+        $cache = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!empty($cache)) {
+
+            $cacheExpire = (cache_time * 86400) + $cache['timestamp'];
+
+            if ($timestamp < $cacheExpire) {
+
+                //cache still valid
+
+                $avatarmedium = $cache['avatarmedium'];
+            } else {
+                //cache expired, updating
+                try {
+                    $sb->ddb->exec("DELETE FROM `cache` WHERE steamid = '" . $cache['steamid'] . "';");
+                    require_once ABSDIR . 'includes/SteamClass.php';
+                    $steam = new SteamIDConvert($steam_id);
+                    $steam->SteamIDCheck()->fillCache();
+                    $playername = $steam->playerSummaries->response->players[0]->personaname;
+                    $avatarmedium = $steam->playerSummaries->response->players[0]->avatarmedium;
+                    $steam_id = $steam->steam_id;
+                } catch (Exception $ex) {
+                    $found_user = false;
+                }
+            }
+        } else {
+            //nothing in cache, getting stuff
+            try {
+                $sb->ddb->exec("DELETE FROM `cache` WHERE steamid = '" . $cache['steamid'] . "';");
+                require_once ABSDIR . 'includes/SteamClass.php';
+                $steam = new SteamIDConvert($steam_id);
+                $steam->SteamIDCheck()->fillCache();
+                $playername = $steam->playerSummaries->response->players[0]->personaname;
+                $avatarmedium = $steam->playerSummaries->response->players[0]->avatarmedium;
+                $steam_id = $steam->steam_id;
+            } catch (Exception $ex) {
+                $found_user = false;
+            }
+        }
+    } else {
+        $found_user = false;
+    }
+}
+?>
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <!-- Javascript to allow gifting -->
+        <script type="text/javascript">
+            function gift() {
+                document.getElementById('steamid-box').style.display = 'block';
+                document.getElementById('id-field').value = '';
+                document.getElementById('id-field').placeholder = 'Enter SteamID here';
+                document.getElementById('userid').style.display = 'none';
+                document.getElementById('infobox').style.display = 'block';
+            }
+            ;
+            function submitDC() {
+                document.getElementById('donateForm').submit();
+            }
+        </script>
+    </head>
+    <body id='original'>
+        <style type="text/css">#infobox{font-size: 12px;}</style>
+    <center>
+        <form action="donate.php" target="blank" id="donateForm" method="post">
+            <input type="image" src="images/btn_donateCC_LG.gif" form="donateForm" onclick='submitDC();' />
+            <input type="hidden" name="donateForm" value="submit" id='submitBtn' />
+            <p>Amount: $<input type="text" name="amount" size="5" class="inputbox" value="5" required></p>
+                <?php
+                $groups = $sb->listGroups();
+
+                foreach ($groups as $group) {
+                    echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' required value='" . $group['id'] . "' />" . $group['name'] . " </div>";
+                }
+
+                if ($found_user) {
+                    print("<div id='steamid-box' style='display:none;' ><label for='steamid_user'>Steam ID:<br /></label>");
+                    print("<input type='text' name='steamid_user' required='true' id='id-field'  value='$steam_id' ></div>");
+                    print("<div id='userid'>Welcome back $playername <br />");
+                    print("<img src='$avatarmedium' style='border:1px solid black;border-radius:5px;' /><br />");
+                    print("<span style='cursor:pointer;' onclick='gift();'> Donate for someone else</span></div>");
+                    print("<div id='infobox' style='display:none;'>");
+                    print("<p>Acceptable formats:<br />STEAM_0:0:0000000<br />steamcommunity.com/profiles/1234567891011<br />steamcommunity.com/id/{name} or {name}<br /></p>");
+                    print("</div>");
+                } else {
+                    print("<br /><label for='paypaloption1'>Steam ID:<br /></label><input type='text' id='paypaloption1' name='steamid_user' required='true' id='id-box' placeholder='Please enter your SteamID' required='true' size='30'></p>");
+                    print("<div id='infobox'>");
+                    print("<p>Acceptable formats:<br />STEAM_0:0:0000000<br />steamcommunity.com/profiles/1234567891011<br />steamcommunity.com/id/{name} or {name}<br /></p>");
+                    print("</div>");
+                }
+                ?>
+        </form>
+    </center>
+</body>
+</html>

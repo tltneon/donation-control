@@ -6,10 +6,10 @@ if (!isset($_SESSION['username']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'
 }
 $session = $_SESSION;
 session_write_close();
+if (!defined('NineteenEleven')) {
+    define('NineteenEleven', TRUE);
+}
 
-require_once '../../../includes/config.php';
-require_once ABSDIR . 'includes/LoggerClass.php';
-$log = new log;
 //Filter the inputs from POST
 $args = array(
     'action' => FILTER_SANITIZE_STRING,
@@ -22,11 +22,11 @@ $args = array(
 $data = filter_input_array(INPUT_POST, $args);
 //var_dump($data);
 if (isset($data['ajax']) && isset($data['id'])) {
-    define("NineteenEleven", TRUE);
     require_once $session['ABSDIR'] . "includes/config.php";
     require_once $session['ABSDIR'] . "scripts/rcon_code.php";
     require_once $session['ABSDIR'] . "includes/SourceBansClass.php";
-
+    require_once ABSDIR . 'includes/LoggerClass.php';
+    $log = new log;
     $srcds_rcon = new srcds_rcon();
     try {
         $sb = new sb;

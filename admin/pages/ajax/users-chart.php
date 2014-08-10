@@ -63,13 +63,6 @@ $doughnut = substr($doughnut, 0, -1);
     <div id="canvas-holder">
         <canvas id="usersCanvas" width="350" height="350"/>
         <div class='chartText'>
-            <?php
-            if ($all) {
-                echo "All users";
-            } else {
-                echo "Active users";
-            }
-            ?>
         </div>
     </div>
 

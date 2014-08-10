@@ -5,9 +5,11 @@ if (!defined('adminPage')) {
 ?>
 <script src="../js/Chart/Chart.js" type="text/javascript"></script>
 <div class='history-chart-container'>
-    <div class='history-chart'></div>
+    <div class='history-chart'><img src="../images/ajax-loader-big.gif" alt=""/></div>
+    <p>Revenue/current donors</p>
     <div class="input-group">
-        <div class="input-group-btn dropup">
+        <div class="input-group-btn drop-down">
+
             <button type="button" class="btn btn-default  dropdown-toggle pull-left" data-toggle="dropdown">
                 Select Months <span class="caret"></span>
             </button>
@@ -29,18 +31,23 @@ if (!defined('adminPage')) {
         </div>
         <input type='number' class='form-control selOther' style='display:none;' id='otherMonths' onchange='setMonths("0")'>
     </div>
-    <input type='hidden' value='6' name="numMonths" id='numMonths'>
+    <input type='hidden' value='3' name="numMonths" id='numMonths'>
 
 </div>
 
 
-<div class='tier-chart-continater'>
+<div class='tier-chart-continater do-nut'>
 <!-- <div class='chartCheckbox'><input type='checkbox' id='allUsers' onchange='getTiers()'><div id='allText'>Show all users</div></div> -->
-    <div class='tier-chart'></div>
-    <button class='btn btn-default btn-lg pull-right' onclick='getTiers()' id='allBtn' value='0'>Show all users</button>
+    <div class='tier-chart'><img src="../images/ajax-loader-big.gif" alt=""/></div>
+    <p>Donors per group<p>
+        <button class='btn btn-default btn-lg pull-right' onclick='getTiers()' id='allBtn' value='0'>Show all users</button>
 </div>
 
-
+<div class='n-vs-r-continater do-nut'>
+<!-- <div class='chartCheckbox'><input type='checkbox' id='allUsers' onchange='getTiers()'><div id='allText'>Show all users</div></div> -->
+    <div class='n-vs-r-chart'><img src="../images/ajax-loader-big.gif" alt=""/></div>
+    <p>New vs Returning<p>
+</div>
 
 
 <script type="text/javascript">
@@ -63,6 +70,7 @@ if (!defined('adminPage')) {
     $(document).ready(function() {
         getHist();
         getTiers();
+        getnvr();
     });
 
     function getHist() {
@@ -105,6 +113,17 @@ if (!defined('adminPage')) {
                 var ctx = document.getElementById("usersCanvas").getContext("2d");
                 window.myDoughnut = new Chart(ctx).Doughnut(doughnutData, {responsive: true});
 
+            }});
+    }
+    function getnvr() {
+        $.ajax({
+            type: 'POST',
+            url: 'pages/ajax/n-vs-r.php',
+            data: {ajax: 1},
+            success: function(result) {
+                $('.n-vs-r-chart').html(result);
+                var ctx = document.getElementById("nvrCanvas").getContext("2d");
+                window.myDoughnut = new Chart(ctx).Doughnut(doughnutData, {responsive: true});
             }});
     }
 </script>

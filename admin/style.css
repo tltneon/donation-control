@@ -248,7 +248,10 @@ body{
     color:yellow;
 }
 
-
+.do-nut p,.history-chart-container p {
+    color:white;
+    font-size:2em;
+}
 @media (min-width: 1650px) {
     .history-chart-container{
         display:block;
@@ -256,7 +259,7 @@ body{
         width:60%;
 
     }
-    .tier-chart-continater{
+    .do-nut{
         display:block;
         float: left;
         width:20%;
@@ -271,7 +274,7 @@ body{
         width:100%;
 
     }
-    .tier-chart-continater{
+    .do-nut{
         display:block;
         width:50%;
         margin-right: auto;

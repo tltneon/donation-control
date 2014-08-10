@@ -54,7 +54,7 @@ if (isset($data['ajax']) && isset($data['id'])) {
         } else {
             print("$success Game Servers Successfully Queried. \n $fail servers were unable to connect.");
         }
-        $log->logAction(sprintf("%s send command '%s' to %s", $session['username'], $data['cmd'], $server['ip'] . ":" . $server['port']));
+        $log->logAction(sprintf("%s send command '%s' to all servers", $session['username'], $data['cmd']));
     } else {
 
         $stmt = $sb->sdb->prepare("SELECT * FROM `" . SB_PREFIX . "_servers` WHERE sid=:id;");
@@ -67,7 +67,8 @@ if (isset($data['ajax']) && isset($data['id'])) {
         }
 
         echo $server['ip'] . ":" . $server['port'] . " Response\n" . $OUTPUT;
-        $log->logAction(sprintf("%s send command '%s' to all servers", $session['username'], $data['cmd']));
+
+        $log->logAction(sprintf("%s send command '%s' to %s", $session['username'], $data['cmd'], $server['ip'] . ":" . $server['port']));
     }
 }
 if (STATS) {

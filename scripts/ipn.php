@@ -300,22 +300,25 @@ if (!$fp) {
     $sysLog->logAction("AUTOMATIC ACTION: $username Added $errors(New Donation)");
 
     if (sys_email) {
-
-        $mail_body = "{$username} Has made a donation of \${$amount} though PayPal, and their donor perks have been automatically activated";
-        $subject = "New \${$amount} donation from {$username} $errors";
-        $mailHeader = "From: " . $mail['name'] . " <" . $mail['email'] . ">\r\n";
-
-
-        if ($mail['useBCC']) {
-            $to = $mail['recipient'] . ', ' . $mail['BCC'];
-        } else {
-            $to = $mail['recipient'];
-        }
-        @mail($to, $subject, $mail_body, $mailHeader);
+        try {
+            $mail_body = "{$username} Has made a donation of \${$amount} though PayPal, and their donor perks have been automatically activated";
+            $subject = "New \${$amount} donation from {$username} $errors";
+            $mailHeader = "From: " . $mail['name'] . " <" . $mail['email'] . ">\r\n";
 
 
-        if ($mail['donor']) {
-            @mail($email, $mail['donorSubject'], $mail['donorMsg'], $mailHeader);
+            if ($mail['useBCC']) {
+                $to = $mail['recipient'] . ', ' . $mail['BCC'];
+            } else {
+                $to = $mail['recipient'];
+            }
+            @mail($to, $subject, $mail_body, $mailHeader);
+
+
+            if ($mail['donor']) {
+                @mail($email, $mail['donorSubject'], $mail['donorMsg'], $mailHeader);
+            }
+        } catch (Exception $ex) {
+            $sysLog->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
         }
     }
 

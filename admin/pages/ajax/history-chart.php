@@ -43,7 +43,7 @@ while ($i <= $numMonths) {
 }
 
 //prepare our sql query.
-$stmt = $sb->ddb->query("SELECT count(*) as numDonors,sum(current_amount) FROM `donors` WHERE `renewal_date` BETWEEN ? AND ? "
+$stmt = $sb->ddb->prepare("SELECT count(*) as numDonors,sum(current_amount) FROM `donors` WHERE `renewal_date` BETWEEN ? AND ? "
         . "OR `sign_up_date` BETWEEN ? AND ?;");
 
 
@@ -55,6 +55,7 @@ while ($i >= 1) {
     $k = $i - 1;
     try {
         $stmt->execute(array($months[$i], $months[$k], $months[$i], $months[$k]));
+        $stmt->execute();
     } catch (Exception $ex) {
         echo "<div class='alert alert-danger' role='alert'>" . $ex->getMessage() . "</div>";
         $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());

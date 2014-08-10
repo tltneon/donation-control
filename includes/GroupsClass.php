@@ -35,7 +35,7 @@ class groups {
      */
     public function getGroupInfo($tier) {
         try {
-            $stmt = $this->ddb->query("SELECT * FROM `groups` where `id` =?;");
+            $stmt = $this->ddb->prepare("SELECT * FROM `groups` where `id` =?;");
             $stmt->bindParam(1, $tier, PDO::PARAM_INT);
             $stmt->execute();
             //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -43,6 +43,7 @@ class groups {
 
             if (empty($this->groupInfo)) {
                 throw new Exception("nothing returned from database");
+                var_dump($stmt);
             }
         } catch (Exception $ex) {
             throw new Exception("Failed get group info.. " . $ex->getMessage());

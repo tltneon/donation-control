@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 if (!isset($_SESSION['username']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
     die();
@@ -349,5 +348,9 @@ while ($db_field = $stmt->fetch(PDO::FETCH_ASSOC)) {
 if ($table) {
     echo "</table></div></div>";
 }
-
-
+?>
+<script>
+    $(document).ready(function() {
+        $(".date").datepicker({dateFormat: "mm/dd/y"});
+    });
+</script>   

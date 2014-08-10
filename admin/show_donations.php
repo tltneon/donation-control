@@ -269,6 +269,18 @@ if (isset($_SESSION['language'])) {
             ?>
 
             <script>
+                $(document).ready(function() {
+
+                    $('#new_user_form').ajaxForm(newOptions);
+
+                    $(".date").datepicker({dateFormat: "mm/dd/y"});
+                    $(".message").click(function() {
+                        $(this).fadeOut();
+                    });
+                    $('.alertContainer').click(function() {
+                        $(this).effect("fade", 400);
+                    });
+                });
                 function loadList() {
                     //$('.alertContainer').html("<div class='alert alert-info' role='alert'><img src='../images/ajax-loader.gif' >Loading Donor List</div>");
                     $.ajax({
@@ -300,18 +312,7 @@ if (isset($_SESSION['language'])) {
                 }
                 ;
 
-                $(document).ready(function() {
 
-                    $('#new_user_form').ajaxForm(newOptions);
-
-                    $(".date").datepicker({dateFormat: "mm/dd/y"});
-                    $(".message").click(function() {
-                        $(this).fadeOut();
-                    });
-                    $('.alertContainer').click(function() {
-                        $(this).effect("fade", 400);
-                    });
-                });
                 function reloadPage() {
                     setTimeout(function() {
                         location.reload();

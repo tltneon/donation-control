@@ -116,7 +116,7 @@ if (SB_DB) {
     define('SB_USER', DB_USER);
     define('SB_PASS', DB_PASS);
 }
-define('VERSION', '3.0.1');
+define('VERSION', '3.0.2');
 define('ABSDIR', substr(__DIR__, 0, stripos(__DIR__, 'includes')));
 define('DEBUG', false);
 set_exception_handler('exception_handler');

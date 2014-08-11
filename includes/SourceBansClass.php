@@ -119,17 +119,14 @@ class sb extends groups {
                 $stmt->execute($vals);
                 $admin_id = $this->sdb->lastInsertId();
             } catch (Exception $ex) {
-                throw new Exception(printf('There was a problem inserting into the Sourcebans admins database: %s', $ex->getMessage()));
+                throw new Exception(printf("<div class='alert alert-danger' role='alert'>There was a problem inserting into the Sourcebans admins database: %s</div>", $ex->getMessage()));
             }
-            unset($stmt);
-            unset($vals);
 
             try {
-                $stmt = $this->sdb->prepare("INSERT INTO `" . SOURCEBANS_DB . "` . `" . SB_PREFIX . "_admins_servers_groups` (admin_id,group_id,srv_group_id,server_id) VALUES(':admin_id',':group_id',':srv_group_id',':server_id');");
-                $vals = array(':admin_id' => $admin_id, ':group_id' => $group['group_id'], ':srv_group_id' => $group['srv_group_id'], ':server_id' => $group['server_id']);
-                $stmt->execute($vals);
+                $stmt = $this->sdb->prepare("INSERT INTO `" . SOURCEBANS_DB . "` . `" . SB_PREFIX . "_admins_servers_groups` (admin_id,group_id,srv_group_id,server_id) VALUES(:admin_id,:group_id,:srv_group_id,:server_id);");
+                $stmt->execute(array(':admin_id' => $admin_id, ':group_id' => $group['group_id'], ':srv_group_id' => $group['srv_group_id'], ':server_id' => $group['server_id']));
             } catch (Exception $ex) {
-                throw new Exception(printf('There was a problem inserting into the Sourcebans admins server groups database: %s', $ex->getMessage()));
+                throw new Exception(printf("<div class='alert alert-danger' role='alert'>There was a problem inserting into the Sourcebans admins server groups database: %s</div>", $ex->getMessage()));
             }
         }
 

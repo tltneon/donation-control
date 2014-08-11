@@ -88,7 +88,6 @@ try {
 
 if (count($rows) != 0) {
     printf('<div class="alert alert-danger" role="alert">User is already in the system with username %s, and steam id %s.</div>', $rows[0]['username'], $input['steam_id']);
-    $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
     die();
 }
 
@@ -136,8 +135,13 @@ try {
     $insertId = $sb->ddb->lastInsertId();
 } catch (Exception $ex) {
     print('<div class="alert alert-danger" role="alert">' . $ex->getMessage . '</div>');
+    $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
 }
-
+try {
+    $sb->addDonor($input['steam_id'], $input['username'], $input['tier']);
+} catch (Exception $ex) {
+    $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
+}
 printf("<div class='alert alert-success' role='alert'>%s has been added to the system</div>", $input['username']);
 $log->logAction(sprintf("%s added %s as new donor", $session['username'], $input['username']));
 if (STATS) {

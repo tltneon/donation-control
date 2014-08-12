@@ -35,10 +35,7 @@ settype($numMonths, 'integer');
 
 //put the times of the previous months in an array
 while ($i <= $numMonths) {
-
-    $m = $now - ((31 * 86400) * $i);
-
-    $months[$i] = $m;
+    $months[$i] = $now - ((31 * 86400) * $i);
     $i++;
 }
 
@@ -54,6 +51,7 @@ $i--;
 while ($i >= 1) {
     $k = $i - 1;
     try {
+        //query the database for each month
         $stmt->execute(array($months[$i], $months[$k], $months[$i], $months[$k]));
         $stmt->execute();
     } catch (Exception $ex) {
@@ -62,41 +60,41 @@ while ($i >= 1) {
         die();
     }
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
+    //if we ge a null value, there is no data for that month. so quit.
     if (is_null($row['numDonors']) || is_null($row['sum(current_amount)'])) {
         echo "<div class='alert alert-danger' role='alert'>Unable to find data for that range.</div>";
         die();
     }
 
     //put it in an array so we can use it later.
-    $data[$months[$i]] = array($row['numDonors'], $row['sum(current_amount)']);
+    $data[$months[$i]] = array($row['numDonors'], $row['sum(current_amount)'],round($row['sum(current_amount)']/$row['numDonors'], 2));
 
     $i--;
 }
 
 
-// this sets our variables for Chart.js this code can go in the while loop above,
-// but were gonna leave it like this for now.
 $monthList = '';
 $numDonors = '';
 $total = '';
+$mean ='';
+// loop over all our data and set our variables for Chart.js 
 foreach ($data as $key => $val) {
 
     $monthList .= '"' . date('F', $key) . '",';
     $numDonors .= $val[0] . ',';
     $total .= $val[1] . ',';
+    $mean .= $val[2] . ',';
 }
+
+//remove the last comma on each variable.
 $monthList = substr($monthList, 0, -1);
 $numDonors = substr($numDonors, 0, -1);
 $total = substr($total, 0, -1);
+$mean = substr($mean, 0, -1);
 
-//echo $monthList;
-//echo $numDonors;
-//echo $total;
+
+//create the chart
 echo "
-
-
-
     <body>
         <div class='canvasContainer'>
             <div>
@@ -112,22 +110,32 @@ echo "
         datasets: [
             {
                 label: 'Total monies recieved',
-                fillColor: 'rgba(220,220,220,0.2)',
-                strokeColor: 'rgba(220,220,220,1)',
-                pointColor: 'rgba(220,220,220,1)',
+                fillColor: 'rgba(220,220,180,0.2)',
+                strokeColor: 'rgba(220,220,180,1)',
+                pointColor: 'rgba(220,220,180,1)',
                 pointStrokeColor: '#fff',
                 pointHighlightFill: '#fff',
-                pointHighlightStroke: 'rgba(220,220,220,1)',
+                pointHighlightStroke: 'rgba(220,220,180,1)',
                 data: [$total]
             },
             {
-                label: 'Number of donors',
-                fillColor: 'rgba(151,187,205,0.2)',
-                strokeColor: 'rgba(151,187,205,1)',
-                pointColor: 'rgba(151,187,205,1)',
+                label: 'Mean average donation',
+                fillColor: 'rgba(220,50,220,0.2)',
+                strokeColor: 'rgba(220,50,220,1)',
+                pointColor: 'rgba(220,50,220,1)',
                 pointStrokeColor: '#fff',
                 pointHighlightFill: '#fff',
-                pointHighlightStroke: 'rgba(151,187,205,1)',
+                pointHighlightStroke: 'rgba(220,50,220,1)',
+                data: [$mean]
+            },            
+            {
+                label: 'Number of donors',
+                fillColor: 'rgba(151,187,255,0.2)',
+                strokeColor: 'rgba(151,187,255,1)',
+                pointColor: 'rgba(151,187,255,1)',
+                pointStrokeColor: '#fff',
+                pointHighlightFill: '#fff',
+                pointHighlightStroke: 'rgba(151,187,255,1)',
                 data: [$numDonors]
             }
         ]
@@ -138,6 +146,8 @@ echo "
 
 </script>";
 
+
+//commented out because this code does in the page recieveing the ajax.
 // window.onload = function() {
     //     var ctx = document.getElementById('canvas').getContext('2d');
     //     window.myLine = new Chart(ctx).Line(lineChartData, {

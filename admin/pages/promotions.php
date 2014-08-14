@@ -3,7 +3,7 @@ if (!defined('adminPage')) {
     exit("Direct access not premitted.");
 }
 
-if (isset($_POST['promo_form'])) {
+if (isset($_POST['promo_form']) || isset($_POST['promo_edit_form'])) {
 
     $args = array(
         'type' => FILTER_SANITIZE_NUMBER_INT,
@@ -13,8 +13,13 @@ if (isset($_POST['promo_form'])) {
         'code' => FILTER_SANITIZE_STRING,
         'descript' => FILTER_SANITIZE_STRING
     );
-    $data = filter_input_array(INPUT_POST, $args, true);
     $required = array('type', 'amount', 'code', 'descript');
+    if (isset($_POST['promo_edit_form'])) {
+        $args['active'] = FILTER_SANITIZE_NUMBER_INT;
+        $args['id'] = FILTER_SANITIZE_NUMBER_INT;
+        array_push($required, 'active,id');
+    }
+    $data = filter_input_array(INPUT_POST, $args, true);
     foreach ($data as $key => $val) {
 
         if (is_null($key) && !array_key_exists($key, $data)) {
@@ -25,6 +30,8 @@ if (isset($_POST['promo_form'])) {
             die("<div class='alert alert-danger' role='alert'>Please fill out the $key field</div>");
         }
     }
+}
+if (isset($_POST['promo_form'])) {
     try {
         $stmt = $sb->ddb->prepare("INSERT INTO `promotions` (`" . implode("`, `", array_keys($data)) . "`) VALUES (:" . implode(", :", array_keys($data)) . ")");
         foreach ($data as $key => $val) {
@@ -34,23 +41,176 @@ if (isset($_POST['promo_form'])) {
     } catch (Exception $ex) {
         $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
         echo "<div class='alert alert-danger' role='alert'>" . $ex->getMessage() . "</div>";
+        $error = true;
+    }
+    if (!isset($error)) {
+        printf("<div class='alert alert-success' role='alert'>Promotion '%s' Added Successfully</div>", $data['descript']);
+    }
+}
+
+if (isset($_POST['promo_edit_form'])) {
+    $vars = '';
+    foreach ($data as $key => $val) {
+        if ($key == 'id') {
+            continue;
+        }
+        $vars .= "`$key`=:$key,";
+    }
+    $vars = substr($vars, 0, -1);
+    echo $vars;
+    try {
+        $stmt = $sb->ddb->prepare("UPDATE `promotions` SET $vars WHERE `id` = :id");
+        foreach ($data as $key => $val) {
+            $stmt->bindValue(':' . $key, $val);
+            echo $key;
+        }
+        $stmt->execute();
+    } catch (Exception $ex) {
+        $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
+        echo "<div class='alert alert-danger' role='alert'>" . $ex->getMessage() . "</div>";
+        $error = true;
+    }
+    if (!isset($error)) {
+        printf("<div class='alert alert-success' role='alert'>Promotion '%s' Edited Successfully</div>", $data['descript']);
     }
 }
 ?>
+
+
+<div class='panel panel-default half-width groups-panel'>
+    <div class='panel-title'><h3>Promotions</h3></div>
+    <div class='panel-body'>
+        <?php
+        foreach ($sb->ddb->query("SELECT * FROM `promotions` WHERE `active` = 1") as $pro) {
+            if ($pro['type'] == '1') {
+                $type = 'Precent off';
+            } else {
+                $type = 'Extra Days';
+            }
+
+            echo"<div class='panel panel-default gradientPanel '>";
+            echo"<div class='panel-title gradientPHeading'><h4>Type of promotion: $type</h4></div>";
+            echo"<div class='panel-body'>";
+
+
+            echo"<form action='show_donations.php?loc=promotions' method='POST' id='promo_edit_form'>";
+
+            echo"<div class='panel panel-default panel-small inline'>";
+            echo"<div class='panel-title'>Status</div>";
+            echo"<div class='panel-body'>";
+            echo"<div class='input-group'>";
+            echo"<span class='input-group-addon'>";
+            if ($pro['active'] == '1') {
+                $active1 = 'checked';
+            } else {
+                $active1 = '';
+            }
+            if ($pro['active'] == '0') {
+                $active2 = 'checked';
+            } else {
+                $active2 = '';
+            }
+            echo"<input type='radio' name='active' value='1' $active1 required />";
+            echo"</span>";
+            echo"<input type='text' readonly value='Active' class='form-control' style='cursor:context-menu;'>";
+            echo"</div>";
+
+            echo"<div class='input-group'>";
+            echo"<span class='input-group-addon'>";
+            echo"<input type='radio' name='active' value='0' $active2 required />";
+            echo"</span>";
+            echo"<input type='text' readonly value='Disabled' class='form-control' style='cursor:context-menu;'>";
+            echo"</div>";
+            echo"</div>";
+            echo"</div>";
+
+            //this code allows changing of promtion type after creation.
+            //probably not a good idea. should make new one instead
+            // if ($pro['type'] == '1') {
+            //     $type1 = 'checked';
+            // } else {
+            //     $type1 = '';
+            // }
+            // if ($pro['type'] == '2') {
+            //     $type2 = 'checked';
+            // } else {
+            //     $type2 = '';
+            // }
+            // echo"<div class='panel panel-default panel-small inline'>";
+            // echo"<h3 class='panel-title'>Type of promotion</h3>";
+            // echo"<div class='panel-body'>";
+            // echo"<div class='input-group'>";
+            // echo"<span class='input-group-addon'>";
+            // echo"<input type='radio' name='type' value='1' $type1 required />";
+            // echo"</span>";
+            // echo"<input type='text' readonly value='% off' class='form-control' style='cursor:context-menu;'>";
+            // echo"</div>";
+            // echo"<div class='input-group'>";
+            // echo"<span class='input-group-addon'>";
+            // echo"<input type='radio' name='type' value='2' $type2 required />";
+            // echo"</span>";
+            // echo"<input type='text' readonly value='Extra Days' class='form-control' style='cursor:context-menu;'>";
+            // echo"</div>";
+            // echo"</div>";
+            // echo"</div>";
+
+
+
+            printf("<input type='hidden' class='form-control' name='type' value='%s'>", $pro['type']);
+
+
+            echo"<div class='input-group'>";
+            echo"<span class='input-group-addon'>Amount or %</span>";
+            printf("<input type='number' class='form-control' name='amount' required min='0' max='99999' value='%s'>", $pro['amount']);
+            echo"</div>";
+
+            echo"<div class='input-group'>";
+            echo"<span class='input-group-addon'>Number of days</span>";
+            printf("<input type='number' class='form-control' name='days' min='0' max='99999' value='%s'>", $pro['days']);
+
+            echo"</div>";
+
+            echo"<div class='input-group'>";
+            echo"<span class='input-group-addon'>Number of promotions</span>";
+            printf("<input type='number' class='form-control' name='number' min='0' max='99999' value='%s' >", $pro['number']);
+            echo"</div>";
+
+            echo"<div class='input-group'>";
+            echo"<span class='input-group-addon'>Promo code</span>";
+            printf("<input type='text' class='form-control' name='code' required value='%s'>", $pro['code']);
+            echo"</div>";
+            echo"<div class='input-group'>";
+            echo"<span class='input-group-addon'>Description</span>";
+            printf("<input type='text' class='form-control' name='descript' required maxlength='128' value='%s'>", $pro['descript']);
+            echo"</div>";
+            echo"<input type='hidden' name='promo_edit_form' value='1'>";
+            printf("<input type='hidden' name='id' value='%s'>", $pro['id']);
+            echo"</form>";
+            echo"<input type='submit' class='btn btn-default' value='Edit Promotion' form='promo_edit_form' />";
+            echo"</div>";
+            echo"</div>";
+        }
+        ?>
+    </div>
+</div>
+
+
+
+
 <div class='panel panel-default half-width'>
-    <h3 class='panel-title'>Promotions</h3>
+    <div class='panel-title'><h3>New Promotion</h3></div>
     <div class='panel-body'>
 
         <form action='show_donations.php?loc=promotions' method='POST' id='promo_form'>
             <div class='panel panel-default panel-small inline'>
-                <h3 class='panel-title'>Type of promotion</h3>
+                <div class='panel-title'>Type of promotion</div>
                 <div class='panel-body'>
                     <div class='input-group'>
                         <span class='input-group-addon'>
 
                             <input type='radio' name='type' value='1' required />
                         </span>
-                        <input type='text' readonly value='% off' class='form-control' style='cursor:context-menu;'>
+                        <input type='text' readonly value='Precent off' class='form-control' style='cursor:context-menu;'>
                     </div>
 
                     <div class='input-group'>
@@ -62,29 +222,29 @@ if (isset($_POST['promo_form'])) {
                 </div>
             </div>
 
-            <div class="input-group">
-                <span class="input-group-addon">Amount or %</span>
-                <input type="number" class="form-control" name='amount' required min="0" max="99999" placeholder='Amount of extra days or % off'>
+            <div class='input-group'>
+                <span class='input-group-addon'>Amount or %</span>
+                <input type='number' class='form-control' name='amount' required min='0' max='99999' placeholder='Amount of extra days or % off'>
             </div>
 
-            <div class="input-group">
-                <span class="input-group-addon">Number of days</span>
-                <input type="number" class="form-control" name='days' min="0" max="99999" placeholder="Lenth in days to run promotion. Blank to run forever">
+            <div class='input-group'>
+                <span class='input-group-addon'>Number of days</span>
+                <input type='number' class='form-control' name='days' min='0' max='99999' placeholder='Lenth in days to run promotion. Blank to run forever'>
 
             </div>
 
-            <div class="input-group">
-                <span class="input-group-addon">Number of promotions</span>
-                <input type="number" class="form-control" name='number' min="0" max="99999" placeholder='How many promotions to give before stopping. Blank to run forever'>
+            <div class='input-group'>
+                <span class='input-group-addon'>Number of promotions</span>
+                <input type='number' class='form-control' name='number' min='0' max='99999' placeholder='How many promotions to give before stopping. Blank to run forever'>
             </div>
 
-            <div class="input-group">
-                <span class="input-group-addon">Promo code</span>
-                <input type="text" class="form-control" name='code' required placeholder='Code to be entered at checkout'>
+            <div class='input-group'>
+                <span class='input-group-addon'>Promo code</span>
+                <input type='text' class='form-control' name='code' required placeholder='Code to be entered at checkout'>
             </div>
-            <div class="input-group">
-                <span class="input-group-addon">Description</span>
-                <input type="text" class="form-control" name='descript' required maxlength="128" placeholder='Promotion description'>
+            <div class='input-group'>
+                <span class='input-group-addon'>Description</span>
+                <input type='text' class='form-control' name='descript' required maxlength='128' placeholder='Promotion description'>
             </div>
             <input type='hidden' name='promo_form' value='1'>
         </form>

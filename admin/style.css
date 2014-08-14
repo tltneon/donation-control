@@ -100,6 +100,9 @@ body{
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f5f6f6', endColorstr='#f5f6f6',GradientType=0 );
 
 }
+.gradientPHeading h4{
+    padding:10px;
+}
 .panel-small{
     background-color: #666;
     color:white;

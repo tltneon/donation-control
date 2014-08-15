@@ -286,49 +286,11 @@ body{
 }
 
 
-/*
-.infSid{
-    width:10%;
+.promo-panel{
+    background-color: #666;
 }
-.infIp{
-    width:10%;
-}
-.infSid{
-    width:10%;
-}
-.infSignD{
-    width:8%;
-}
-.infEmail{
-    width:10%;
-}
-.infRenew{
-    width:10%;
-}
-.inFcurAmt{
-    width:10%;
-}
-.infTotal{
-    width:10%;
-}
-.infExpD{
-    width:10%;
-}
-.infGrpNnm{
-    width:10%;
-}
-.infGrpNnm{
-    width:10%;
-}
-.infNotes{
-    width:10%;
-}
-.infEdit{
-    width:10%;
-}
-*/
 
-.editUser, .newUser{
+.editUser, .newUser, .editPromo{
     position: absolute;
     z-index: 2;
     width: 100%;

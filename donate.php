@@ -285,6 +285,7 @@ $ap = $promos->getActivePromos();
                     print('</form>');
                     print("<input type='hidden' id='expire' value='$expire'>");
                     print("<input type='hidden' id='amount' value='$amount'>");
+                    print("<input type='hidden' id='steamid' value='$steam_id'>");
                     ?>
                     <div class='panel-footer'>
                         <form id="langSelect" method="post">Change Language:
@@ -333,10 +334,11 @@ $ap = $promos->getActivePromos();
                                     var varCode = $('#promoCode').val();
                                     var varAmount = $('#amount').val();
                                     var varExpire = $('#expire').val();
+                                    var varId = $('#steamid').val();
                                     $.ajax({
                                         type: 'POST',
                                         url: 'scripts/promoCheck.php',
-                                        data: {code: varCode, amount: varAmount, expire: varExpire, ajax: 1},
+                                        data: {code: varCode, amount: varAmount, expire: varExpire, id: varId, ajax: 1},
                                         success: function(result) {
                                             $('#promoResult').html(result);
                                         }});

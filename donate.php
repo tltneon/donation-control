@@ -58,14 +58,14 @@ if ($stmt->rowCount() > 0) {
         if (!$socket) {
             die("<h3>" . $lang->steamdown[0]->msg1 .
                     "<br />" . $lang->steamdown[0]->msg2 .
-                    "<br />" . $lang->steamdown[0]->msg3 .
-                    "<br /><a href='javascript:history.go(-1);'>" . $lang->misc[0]->msg1 . "</a></h3>");
+                    "<br />" . $lang->steamdown[0]->msg3 . "</h3>");
+            //"<br /><a href='javascript:history.go(-1);'>" . $lang->misc[0]->msg1 . "</a></h3>");
         } else {
             @fclose($socket);
             die("<h3>" . $lang->steamdown[0]->msg4 .
                     "<br />" . $lang->steamdown[0]->msg5 .
-                    "<br />" . $lang->steamdown[0]->msg6 .
-                    "<br /><a href='javascript:history.go(-1);'>" . $lang->misc[0]->msg1 . "</a></h3>");
+                    "<br />" . $lang->steamdown[0]->msg6 . "</h3>");
+            //"<br /><a href='javascript:history.go(-1);'>" . $lang->misc[0]->msg1 . "</a></h3>");
         }
     }
 }
@@ -75,6 +75,10 @@ if (strpos($amount, "$") === 0) {
     $amount = substr($amount, 1);
 }
 $group = $sb->getGroupInfo($tier);
+if ($group === false) {
+    echo '<div class="alert alert-danger" role="alert">No groups are set up yet.</div>';
+    die();
+}
 if ($amount < $group['minimum'] && $group['minimum'] != 0) {
     $amountSmall = true;
 } else {

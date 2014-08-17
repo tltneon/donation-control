@@ -109,9 +109,12 @@ if (PLAYER_TRACKER && $gotDb) {
             <p>Amount: $<input type="text" name="amount" size="5" class="inputbox" value="5" required></p>
                 <?php
                 $groups = $sb->listGroups();
-
-                foreach ($groups as $group) {
-                    echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' required value='" . $group['id'] . "' />" . $group['name'] . " </div>";
+                if ($groups !== false) {
+                    foreach ($groups as $group) {
+                        echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' required value='" . $group['id'] . "' />" . $group['name'] . " </div>";
+                    }
+                } else {
+                    echo "No Groups are set up yet!";
                 }
 
                 if ($found_user) {

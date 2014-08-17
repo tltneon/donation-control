@@ -156,6 +156,9 @@ if (!$fp) {
             if ($validPromo) {
                 $stmt = $sb->ddb->prepare("INSERT INTO `promotions_redeemed` (promo_id,promo_code,steam_id)VALUES(:promo_id,:promo_code,:steam_id);");
                 $stmt->execute(array(':promo_id' => $promo['id'], ':promo_code' => $promo['code'], ':steam_id' => $steamid_user));
+                if (STATS) {
+                    @$sysLog->stats("PC|" . $promo['type']);
+                }           
             }
             if (DEBUG) {
                 fwrite($log, "////////////////////////////////////////\r\n");

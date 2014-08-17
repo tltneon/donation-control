@@ -55,9 +55,11 @@ class log {
     }
 
     public function stats($data) {
-        ini_set('default_socket_timeout', 10);
-        $data = urlencode(sha1($_SERVER['SERVER_ADDR']) . "|" . date('U') . "|" . $data);
-        @file_get_contents('http://nineteeneleven.info/stats/get.php?data=' . $data);
+        if (STATS && !DEBUG) {
+            ini_set('default_socket_timeout', 10);
+            $data = urlencode(sha1($_SERVER['SERVER_ADDR']) . "|" . date('U') . "|" . $data);
+            @file_get_contents('http://nineteeneleven.info/stats/get.php?data=' . $data);
+        }
     }
 
 }

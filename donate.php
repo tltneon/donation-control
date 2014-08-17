@@ -16,9 +16,11 @@ require_once'includes/config.php';
 require_once ABSDIR . 'includes/SourceBansClass.php';
 require_once ABSDIR . 'includes/LanguageClass.php';
 require_once ABSDIR . 'includes/SteamClass.php';
+require_once ABSDIR . 'includes/PromotionsClass.php';
 $language = new language;
 try {
     $sb = new sb;
+    $promos = new promotions;
 } catch (Exception $ex) {
     print "Oops something went wrong, please try again later.";
 }
@@ -69,7 +71,6 @@ if ($stmt->rowCount() > 0) {
 }
 
 
-///////////////////////
 if (strpos($amount, "$") === 0) {
     $amount = substr($amount, 1);
 }
@@ -132,17 +133,14 @@ if ($stmt->rowCount() == 1) {
     $return_donor = false;
 }
 unset($n);
+
+//promo codes
+$ap = $promos->getActivePromos();
 ?>
 <html>
 
     <head>
         <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-        <script type="text/javascript" src="js/jscolor/jscolor.js"></script>
-        <script>
-            function change() {
-                document.getElementById("langSelect").submit();
-            }
-        </script>
         <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
         <style type="text/css">
             textarea{
@@ -160,6 +158,15 @@ unset($n);
             }
             input[type=checkbox]{
                 margin: 0 1em;
+            }
+            .inline{
+                display:inline-block;
+            }
+            .foundPromo{
+                background-color:rgba(135, 192, 124, 0.7);
+            }
+            .noPromo{
+                background-color: rgba(215, 81, 79, 0.7);
             }
             .btn{
                 margin: 1em .8em;
@@ -199,7 +206,7 @@ unset($n);
             <div class = "panel panel-default main-content">
                 <?php
                 if ($return_donor) {
-                    printf("<div class='panel-heading'>" . $lang->donate[0]->msg2 . " " . date('l F j Y', $expiration_date) . "</div>", $username);
+                    printf("<div class='panel-heading'>" . $lang->donate[0]->msg2 . " " . date($date_format['front_end'], $expiration_date) . "</div>", $username);
                 }
                 ?>
                 <div class="panel-body">
@@ -234,9 +241,9 @@ unset($n);
 
                     printf(" " . $lang->donate[0]->msg6 . " ", $group['name']);
                     if ($return_donor) {
-                        printf($lang->donate[0]->msg7a . ".</p>", date('l F j Y', $expire));
+                        printf($lang->donate[0]->msg7a . ".</p>", date($date_format['front_end'], $expire));
                     } else {
-                        printf($lang->donate[0]->msg7 . ".</p>", date('l F j Y', $now), date('l F j Y', $expire));
+                        printf($lang->donate[0]->msg7 . ".</p>", date($date_format['front_end'], $now), date($date_format['front_end'], $expire));
                     }
                     if ($group['ccc_enabled'] && CCC) {
                         echo "<p>" . $lang->donate[0]->msg8 . "</p>";
@@ -244,10 +251,9 @@ unset($n);
                         echo "<p><input class='color' name='on0' value='#33CC99' id='colorInput'>" . $lang->misc[0]->msg3 . " <input class='color' name='on1' value='#990000' id='colorInput'>" . $lang->misc[0]->msg2 . "</p>";
                     }
                     echo "<p>" . $lang->donate[0]->msg9 . "</p>";
-                    echo "";
                     print('<input type="hidden" name="cmd" value="_xclick">');
                     print('<input type="hidden" name="no_note" value="1">');
-                    print('<input type="hidden" name="amount" value="' . $amount . '">');
+                    print('<input type="hidden" id="ppAmount" name="amount" value="' . $amount . '">');
                     print('<input type="hidden" name="item_name" value="' . PP_DESC . '">');
                     print('<input type="hidden" name="no_shipping" value="1">');
                     print('<input type="hidden" name="rm" value="2">');
@@ -255,8 +261,13 @@ unset($n);
                     print('<input type="hidden" name="notify_url" value="' . PP_IPN . '">');
                     print('<input type="hidden" name="cancel_return" value="' . PP_FAIL . '">');
                     print('<input type="hidden" name="currency_code" value="' . PP_CURRENCY . '">');
-                    print("<input type='hidden' name='custom' value='$steam_id|$tier'>");
+                    print("<input type='hidden' id='ppCustom' name='custom' value='$steam_id|$tier'>");
+                    print("<!-- All these inputs get checked again server side, so dont bother trying to be 'smart' and use inspector to change them unless you want to waiste your money -->");
                     print('<br />');
+                    //promos
+                    if (!empty($ap)) {
+                        echo "<input type='text' id='promoCode' name='promoCode'> Promo Code <br /><div id='promoResult'></div>";
+                    }
                     print('<br />');
                     if (is_file('includes/tos.txt')) {
                         $file = file("includes/tos.txt");
@@ -265,13 +276,16 @@ unset($n);
                             print($line);
                         }
                         print('</textarea>');
-                        printf('<p><input type="checkbox" required />%s</p>', $lang->donate[0]->acceptTos);
+                        printf('<p><input type="checkbox"  required />%s</p>', $lang->donate[0]->acceptTos);
                     }
                     if (isset($grpChange)) {
-                        printf("<p><input type='checkbox' required>" . $lang->donate[0]->msg10 . "</p>", $oldGroup['name'], $group['name']);
+                        printf("<p><input type = 'checkbox' required>" . $lang->donate[0]->msg10 . "</p>", $oldGroup['name'], $group['name']);
                     }
                     print('<input type="submit" value="DONATE!" class="btn btn-lg btn-success" form="donate">');
                     print('</form>');
+                    print("<input type='hidden' id='expire' value='$expire'>");
+                    print("<input type='hidden' id='amount' value='$amount'>");
+                    print("<input type='hidden' id='steamid' value='$steam_id'>");
                     ?>
                     <div class='panel-footer'>
                         <form id="langSelect" method="post">Change Language:
@@ -280,16 +294,16 @@ unset($n);
                                 $langList = $language->listLang();
                                 foreach ($langList as $list) {
                                     if ($list == $lang->language) {
-                                        printf('<option value="%s" selected>%s</option>', $list, $availableLanguages[$list]);
+                                        printf('<option value="%s"  selected>%s</option>', $list, $availableLanguages[$list]);
                                     } else {
-                                        printf('<option value="%s">%s</option>', $list, $availableLanguages[$list]);
+                                        printf('<option value="%s" >%s</option>', $list, $availableLanguages[$list]);
                                     }
                                 }
 
                                 unset($i);
 //send the varibles to the new page with the new language
-                                printf("<input type='hidden' name='steamid_user' value='%s'><input type='hidden' name='amount' value='%s'>", $userInfo['steamid'], $amount);
-                                printf("<input type='hidden' name='tier' value='%s'>", $tier);
+                                printf("<input type = 'hidden' name = 'steamid_user' value = '%s'><input type = 'hidden' name = 'amount' value = '%s'>", $userInfo['steamid'], $amount);
+                                printf("<input type = 'hidden' name = 'tier' value = '%s'>", $tier);
                                 ?>
                             </select>
                         </form>
@@ -297,8 +311,38 @@ unset($n);
                 </div> <!-- panel -->
             </div> <!-- panel-body -->
         </div> <!-- content -->
-
+        <script src="js/jquery-2.1.0.min.js" type="text/javascript"></script>
         <script src="js/jquery-ui.min.js" type="text/javascript"></script>
         <script src="bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+        <script type="text/javascript" src="js/jscolor/jscolor.js"></script>
+        <script>
+                                function change() {
+                                    document.getElementById("langSelect").submit();
+                                }
+                                var timeoutReference;
+                                var checkInterval = 1000;  //time in ms,
+                                $(document).ready(function() {
+                                    $('#promoCode').keypress(function() {
+                                        if (timeoutReference)
+                                            clearTimeout(timeoutReference);
+                                        timeoutReference = setTimeout(function() {
+                                            doPromoCheck();
+                                        }, checkInterval);
+                                    });
+                                });
+                                function doPromoCheck() {
+                                    var varCode = $('#promoCode').val();
+                                    var varAmount = $('#amount').val();
+                                    var varExpire = $('#expire').val();
+                                    var varId = $('#steamid').val();
+                                    $.ajax({
+                                        type: 'POST',
+                                        url: 'scripts/promoCheck.php',
+                                        data: {code: varCode, amount: varAmount, expire: varExpire, id: varId, ajax: 1},
+                                        success: function(result) {
+                                            $('#promoResult').html(result);
+                                        }});
+                                }
+        </script>
     </body>
 </html>

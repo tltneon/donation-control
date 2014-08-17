@@ -66,6 +66,7 @@ if (isset($_SESSION['language'])) {
                 'Groups' => 'group_management',
                 $lang->admin[0]->serverquery => 'nuclear',
                 'Analytics' => 'stats',
+                'Promos' => 'promotions',
                 $lang->admin[0]->logs => array('href' => 'Logs', $lang->admin[0]->actionlog => 'action_log', $lang->admin[0]->errorlog => 'error_log'),
                 $lang->admin[0]->logout => 'logout',
             );
@@ -283,10 +284,23 @@ if (isset($_SESSION['language'])) {
                 });
                 function loadList() {
                     //$('.alertContainer').html("<div class='alert alert-info' role='alert'><img src='../images/ajax-loader.gif' >Loading Donor List</div>");
+<?php
+if (isset($_SESSION['table'])) {
+    $table = $_SESSION['table'];
+} else {
+    $table = 0;
+}
+if (!isset($search)) {
+    $search = '';
+}
+if (!isset($show_expired)) {
+    $show_expired = '';
+}
+?>
                     $.ajax({
                         type: 'POST',
                         url: 'pages/ajax/get-list.php',
-                        data: {table: '<?php echo $_SESSION['table']; ?>', search: '<?php echo $search; ?>', expired: '<?php echo $show_expired; ?>', ajax: 1},
+                        data: {table: '<?php echo $table; ?>', search: '<?php echo $search; ?>', expired: '<?php echo $show_expired; ?>', ajax: 1},
                         success: function(result) {
                             $('.listPage').html(result);
                             //$('.alertContainer').html('');
@@ -334,10 +348,10 @@ if (isset($_SESSION['language'])) {
             </script>
             <script src="../js/jquery-ui.min.js" type="text/javascript"></script>
             <script src="../bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
-<!--        <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>-->
+        <!--        <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>-->
 
-
-
-        </div> <!-- wrapper -->
-    </body>
+        </div><!-- content  -->
+    </div> <!-- main -->
+</div> <!-- wrapper -->
+</body>
 </html>

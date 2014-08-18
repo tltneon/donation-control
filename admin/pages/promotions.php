@@ -285,6 +285,7 @@ echo "</div>"; //promoPanelContainer
             $("html, body").animate({scrollTop: 0}, "slow");
         }
     }
+
 </script>
 <div class='panel panel-default half-width groups-panel pull-right'>
     <div class='panel-title'><h3>New Promotion</h3></div>

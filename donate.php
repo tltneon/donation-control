@@ -2,11 +2,11 @@
 if (isset($_POST['steamid_user'])) {
     $steamid_user = filter_input(INPUT_POST, 'steamid_user', FILTER_SANITIZE_STRING);
     $tier = filter_input(INPUT_POST, 'tier', FILTER_SANITIZE_NUMBER_INT);
-    $amount = filter_input(INPUT_POST, 'amount', FILTER_SANITIZE_NUMBER_INT);
+    $amount = filter_input(INPUT_POST, 'amount', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
 } elseif (isset($_GET['steamid_user'])) {
     $steamid_user = filter_input(INPUT_GET, 'steamid_user', FILTER_SANITIZE_STRING);
     $tier = filter_input(INPUT_GET, 'tier', FILTER_SANITIZE_NUMBER_INT);
-    $amount = filter_input(INPUT_GET, 'amount', FILTER_SANITIZE_NUMBER_INT);
+    $amount = filter_input(INPUT_GET, 'amount', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
 } else {
     die();
 }

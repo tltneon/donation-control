@@ -5,15 +5,16 @@ if (!defined('adminPage')) {
 require_once ABSDIR . 'includes/PromotionsClass.php';
 if (isset($_POST['promo_form']) || isset($_POST['promo_edit_form'])) {
 
-    $args = [
+    $args = array(
         'type' => FILTER_SANITIZE_NUMBER_INT,
-        'amount' => FILTER_SANITIZE_NUMBER_INT,
+        'amount' => array('filter' => FILTER_VALIDATE_FLOAT,
+            'flags' => FILTER_FLAG_ALLOW_FRACTION),
         'days' => FILTER_SANITIZE_NUMBER_INT,
         'number' => FILTER_SANITIZE_NUMBER_INT,
         'code' => FILTER_SANITIZE_STRING,
         'descript' => FILTER_SANITIZE_STRING
-    ];
-    $required = ['type', 'amount', 'code', 'descript'];
+    );
+    $required = array('type', 'amount', 'code', 'descript');
     if (isset($_POST['promo_edit_form'])) {
         $args['active'] = FILTER_SANITIZE_NUMBER_INT;
         $args['id'] = FILTER_SANITIZE_NUMBER_INT;
@@ -285,7 +286,6 @@ echo "</div>"; //promoPanelContainer
             $("html, body").animate({scrollTop: 0}, "slow");
         }
     }
-
 </script>
 <div class='panel panel-default half-width groups-panel pull-right'>
     <div class='panel-title'><h3>New Promotion</h3></div>

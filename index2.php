@@ -124,8 +124,18 @@ print("<p>Amount: $<input type=\"text\" name=\"amount\" size=\"2\" class=\"input
 
 $groups = $sb->listGroups();
 
-foreach ($groups as $group) {
-    echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' required value='" . $group['id'] . "' />" . $group['name'] . " </div>";
+if ($groups !== false) {
+    $i=0;
+    foreach ($groups as $group) {
+        echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' "; 
+        if($i ==0){
+            echo "checked";
+        }
+        echo " required value='" . $group['id'] . "' />" . $group['name'] . " </div>";
+        $i++;
+    }
+} else {
+    echo "No Groups are set up yet!";
 }
 
 

@@ -270,7 +270,7 @@ $ap = $promos->getActivePromos();
                     print('<br />');
                     //promos
                     if (!empty($ap)) {
-                        echo "<input type='text' id='promoCode' name='promoCode'> Promo Code <br /><div id='promoResult'></div>";
+                        echo "<input type='text' id='promoCode' name='promoCode' onPaste='setTimeout(function(){doPromoCheck(), 4});'> Promo Code <!--<div style='font-size:12' class='inline'>(Type out, dont copy paste.)</div> --> <br /><div id='promoResult'></div>";
                     }
                     print('<br />');
                     if (is_file('includes/tos.txt')) {

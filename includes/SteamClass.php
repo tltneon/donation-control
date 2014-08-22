@@ -39,7 +39,7 @@ class SteamQuery {
 
     /**
      *
-     * @return sets $this->playerSummaries from Steam, or $this->playerSummaries = flase if error
+     * @return sets $this->playerSummaries from Steam, or exception if error
      */
     protected function GetPlayerSummaries() {
         $API_link = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" . API_KEY . "&format=json&steamids=" . $this->steamId64;
@@ -48,7 +48,7 @@ class SteamQuery {
         $this->playerSummaries = json_decode($json);
         //var_dump($this->playerSummaries);
         if (empty($this->playerSummaries->response->players[0])) {
-            $this->playerSummaries = false;
+            throw new Exception('Unable verify player with Steam.');
         }
         return $this->playerSummaries;
     }
@@ -61,7 +61,7 @@ class SteamQuery {
         $query = json_decode($json);
         if ($query->response->success == 1) {
             $ID64 = $query->response->steamid;
-            return $ID64;
+            $this->steamId64 =  $ID64;
         } else {
             throw new Exception('Unable to resolve vanity url');
         }
@@ -76,11 +76,11 @@ class SteamIDConvert extends SteamQuery {
     }
 
     //Get 76561197973578969 from STEAM_0:1:6656620
-    protected function IDto64($steamId) {
+    protected function IDto64() {
         $iServer = "0";
         $iAuthID = "0";
 
-        $szTmp = strtok($steamId, ":");
+        $szTmp = strtok($this->steam_id, ":");
 
         while (($szTmp = strtok(":")) !== false) {
             $szTmp2 = strtok(":");
@@ -89,24 +89,25 @@ class SteamIDConvert extends SteamQuery {
                 $iAuthID = $szTmp2;
             }
         }
-        if ($iAuthID == "0")
-            return "0";
+        if ($iAuthID == "0"){
+            throw new Exception('Error converting ID to 64 bit.');
+        }
 
         $steamId64 = bcmul($iAuthID, "2");
         $steamId64 = bcadd($steamId64, bcadd("76561197960265728", $iServer));
         if (strpos($steamId64, ".")) {
             $steamId64 = strstr($steamId64, '.', true);
         }
-        return $steamId64;
+        $this->steamId64 = $steamId64;
     }
 
     ////Get STEAM_0:1:6656620 from 76561197973578969
-    protected function IDfrom64($steamId64) {
+    protected function IDfrom64() {
         $iServer = "1";
-        if (bcmod($steamId64, "2") == "0") {
+        if (bcmod($this->steamId64, "2") == "0") {
             $iServer = "0";
         }
-        $steamId64 = bcsub($steamId64, $iServer);
+        $steamId64 = bcsub($this->steamId64, $iServer);
         if (bccomp("76561197960265728", $steamId64) == -1) {
             $steamId64 = bcsub($steamId64, "76561197960265728");
         }
@@ -114,35 +115,76 @@ class SteamIDConvert extends SteamQuery {
         if (strpos($steamId64, ".")) {
             $steamId64 = strstr($steamId64, '.', true);
         }
-        return ("STEAM_0:" . $iServer . ":" . $steamId64);
+        $this->steam_id =  ("STEAM_0:" . $iServer . ":" . $steamId64);
     }
 
-    protected function getSteamLink($steamId64) {
-        return "http://steamcommunity.com/profiles/" . $steamId64;
+    protected function getSteamLink() {
+        $this->steam_link =  "http://steamcommunity.com/profiles/" . $this->steamId64;
     }
 
     protected function checkId() {
         $this->GetPlayerSummaries();
 
         if ($this->playerSummaries === false) {
-            throw new Exception('Invalid Steam id');
+            throw new Exception('Unable to fetch data from steam.');
+        }
+    }
+
+    public function disableIdVerification(){
+        $this->verifyId = false;
+        return $this;
+    }
+
+
+    //U:1:13313241
+    //STEAM_0:1:6656620
+
+    protected function steam3() {
+        $id = explode(':', $this->steam_id);
+        $id3 = ($id[2] * 2) + $id[1];
+        $this->steam3id = '[U:1:' . $id3 . ']';
+    }
+//[U:1:C] --> is C odd? if yes then A = 1, else A = 0.  B = floor(C / 2) --> STEAM_0:A:B
+    protected function steam2(){
+        $steam3 = trim($this->steam3id,"[]");
+        $s3arr = explode(':', $steam3);
+        if($s3arr[2] % 2 == 1){ //odd
+            $this->steam_id = "STEAM_0:1:".floor($s3arr[2]/2);
+        }elseif($s3arr[2] % 2 == 0){ //even
+            $this->steam_id = "STEAM_0:0:".floor($s3arr[2]/2);
+        }else{
+            throw new Exception('Invalid Steam3 id');
         }
     }
 
     public function SteamIDCheck() {
-
+        if (isset($this->verifyId)){
+            $this->verifyId = false;
+        }else{
+            $this->verifyId = true;
+        }
         $this->id_input = rtrim($this->id_input, "/"); // remove trailing backslash
         //Look for STEAM_0:1:6656620 variation
-        if (preg_match("/^STEAM_/i", $this->id_input)) {
-            $this->steamId64 = $this->IDto64($this->id_input);
-            $this->steam_link = $this->getSteamLink($this->steamId64);
+        if (preg_match("/^\[?U:[0-9]/i", $this->id_input)) {
+            if(strstr($this->id_input,'[') === false){
+                $this->id_input = '[' . $this->id_input;
+            }
+            if(strstr($this->id_input,']') === false){
+                $this->id_input = $this->id_input . ']';
+            }            
+            $this->steam3id = $this->id_input;
+            $this->steam2();
+            $this->IDto64();
+            $this->getSteamLink($this->steamId64);            
+        }elseif (preg_match("/^STEAM_/i", $this->id_input)) {
             $this->steam_id = strtoupper($this->id_input);
-
+            $this->IDto64();
+            $this->getSteamLink();
             //look for just steam id 64, 76561197973578969
         } elseif (preg_match("/^[0-9]/i", $this->id_input)) {
             $this->steamId64 = $this->id_input;
-            $this->steam_link = $this->getSteamLink($this->steamId64);
-            $this->steam_id = $this->IDfrom64($this->steamId64);
+            $this->getSteamLink();
+            $this->IDfrom64();
         } else {
 
             if (preg_match('#^http(s)?://#', $this->id_input)) {
@@ -160,25 +202,25 @@ class SteamIDConvert extends SteamQuery {
                         $i = preg_split("/\//i", $this->id_input);
                         $size = count($i) - 1;
                         $this->steamId64 = $i[$size];
-                        $this->steam_link = $this->getSteamLink($this->steamId64);
-                        $this->steam_id = $this->IDfrom64($this->steamId64);
+                        $this->getSteamLink();
+                        $this->IDfrom64();
                     } elseif (preg_match("/(\/id\/)+/i", $this->id_input)) {
 
                         //look for vanity url http://steamcommunity.com/id/nineteeneleven
                         $i = preg_split("/\//i", $this->id_input);
                         $size = count($i) - 1;
-                        $this->steamId64 = $this->ConvertVanityURL($i[$size]);
-                        $this->steam_id = $this->IDfrom64($this->steamId64);
-                        $this->steam_link = $this->getSteamLink($this->steamId64);
+                        $this->ConvertVanityURL($i[$size]);
+                        $this->IDfrom64();
+                        $this->getSteamLink();
                     } else {
                         throw new Exception('Invalid Steam id');
                     }
                 } else {
                     //check if its just vanity url, nineteeneleven
 
-                    $this->steamId64 = $this->ConvertVanityURL($this->id_input);
-                    $this->steam_id = $this->IDfrom64($this->steamId64);
-                    $this->steam_link = $this->getSteamLink($this->steamId64);
+                    $this->ConvertVanityURL($this->id_input);
+                    $this->IDfrom64();
+                    $this->getSteamLink();
                     if ($this->steam_id == "STEAM_0:0:0") {
                         throw new Exception('Unable to resolve vanity url');
                     }
@@ -188,7 +230,14 @@ class SteamIDConvert extends SteamQuery {
                 throw new Exception('Invalid Steam id');
             }
         }
-        $this->checkId();
+        if(!isset($this->steam3id)){
+            $this->steam3($this->steam_id);
+        }
+        if($this->verifyId){
+            $this->checkId();
+        }
+        
+
         return $this;
     }
 

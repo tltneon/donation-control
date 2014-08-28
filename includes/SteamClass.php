@@ -61,7 +61,7 @@ class SteamQuery {
         $query = json_decode($json);
         if ($query->response->success == 1) {
             $ID64 = $query->response->steamid;
-            $this->steamId64 =  $ID64;
+            $this->steamId64 = $ID64;
         } else {
             throw new Exception('Unable to resolve vanity url');
         }
@@ -89,7 +89,7 @@ class SteamIDConvert extends SteamQuery {
                 $iAuthID = $szTmp2;
             }
         }
-        if ($iAuthID == "0"){
+        if ($iAuthID == "0") {
             throw new Exception('Error converting ID to 64 bit.');
         }
 
@@ -115,11 +115,11 @@ class SteamIDConvert extends SteamQuery {
         if (strpos($steamId64, ".")) {
             $steamId64 = strstr($steamId64, '.', true);
         }
-        $this->steam_id =  ("STEAM_0:" . $iServer . ":" . $steamId64);
+        $this->steam_id = ("STEAM_0:" . $iServer . ":" . $steamId64);
     }
 
     protected function getSteamLink() {
-        $this->steam_link =  "http://steamcommunity.com/profiles/" . $this->steamId64;
+        $this->steam_link = "http://steamcommunity.com/profiles/" . $this->steamId64;
     }
 
     protected function checkId() {
@@ -130,11 +130,10 @@ class SteamIDConvert extends SteamQuery {
         }
     }
 
-    public function disableIdVerification(){
+    public function disableIdVerification() {
         $this->verifyId = false;
         return $this;
     }
-
 
     //U:1:13313241
     //STEAM_0:1:6656620
@@ -144,39 +143,41 @@ class SteamIDConvert extends SteamQuery {
         $id3 = ($id[2] * 2) + $id[1];
         $this->steam3id = '[U:1:' . $id3 . ']';
     }
+
 //[U:1:C] --> is C odd? if yes then A = 1, else A = 0.  B = floor(C / 2) --> STEAM_0:A:B
-    protected function steam2(){
-        $steam3 = trim($this->steam3id,"[]");
+    protected function steam2() {
+        $steam3 = trim($this->steam3id, "[]");
         $s3arr = explode(':', $steam3);
-        if($s3arr[2] % 2 == 1){ //odd
-            $this->steam_id = "STEAM_0:1:".floor($s3arr[2]/2);
-        }elseif($s3arr[2] % 2 == 0){ //even
-            $this->steam_id = "STEAM_0:0:".floor($s3arr[2]/2);
-        }else{
+        if ($s3arr[2] % 2 == 1) { //odd
+            $this->steam_id = "STEAM_0:1:" . floor($s3arr[2] / 2);
+        } elseif ($s3arr[2] % 2 == 0) { //even
+            $this->steam_id = "STEAM_0:0:" . floor($s3arr[2] / 2);
+        } else {
             throw new Exception('Invalid Steam3 id');
         }
     }
 
     public function SteamIDCheck() {
-        if (isset($this->verifyId)){
+        if (isset($this->verifyId)) {
             $this->verifyId = false;
-        }else{
+        } else {
             $this->verifyId = true;
         }
         $this->id_input = rtrim($this->id_input, "/"); // remove trailing backslash
-        //Look for STEAM_0:1:6656620 variation
+
         if (preg_match("/^\[?U:[0-9]/i", $this->id_input)) {
-            if(strstr($this->id_input,'[') === false){
+            if (strstr($this->id_input, '[') === false) {
                 $this->id_input = '[' . $this->id_input;
             }
-            if(strstr($this->id_input,']') === false){
+            if (strstr($this->id_input, ']') === false) {
                 $this->id_input = $this->id_input . ']';
-            }            
+            }
             $this->steam3id = $this->id_input;
             $this->steam2();
             $this->IDto64();
-            $this->getSteamLink($this->steamId64);            
-        }elseif (preg_match("/^STEAM_/i", $this->id_input)) {
+            $this->getSteamLink($this->steamId64);
+            //Look for STEAM_0:1:6656620 variation
+        } elseif (preg_match("/^STEAM_/i", $this->id_input)) {
             $this->steam_id = strtoupper($this->id_input);
             $this->IDto64();
             $this->getSteamLink();
@@ -230,13 +231,13 @@ class SteamIDConvert extends SteamQuery {
                 throw new Exception('Invalid Steam id');
             }
         }
-        if(!isset($this->steam3id)){
+        if (!isset($this->steam3id)) {
             $this->steam3($this->steam_id);
         }
-        if($this->verifyId){
+        if ($this->verifyId) {
             $this->checkId();
         }
-        
+
 
         return $this;
     }
@@ -247,18 +248,47 @@ class SteamIDConvert extends SteamQuery {
         require_once ABSDIR . 'includes/SourceBansClass.php';
         try {
             $sb = new sb;
-            $stmt = $sb->ddb->prepare("INSERT INTO `cache` (steamid,avatar,avatarmedium,avatarfull,personaname,timestamp,steamid64,steam_link)
+
+            $stmt = $sb->ddb->prepare("SELECT `id` FROM `cache` WHERE steamid = ? ORDER BY id DESC LIMIT 0,1;");
+            $stmt->bindParam(1, $this->steam_id);
+            $stmt->execute();
+
+            if ($stmt->rowCount() == 1) {
+                $id = $stmt->fetch(PDO::FETCH_ASSOC);
+                $id = $id['id'];
+
+                $cache = $sb->ddb->prepare("UPDATE `cache` SET `steamid` = :steamid, `avatar` =:avatar, `avatarmedium` = :avatarmedium, `avatarfull` = :avatarfull,"
+                        . " `personaname` = :personaname, `timestamp` = :timestamp, `steamid64` =  :steamid86, `steam_link` = :steam_link WHERE `id`=:id;");
+
+
+
+                $cache->execute(array(
+                    $this->steam_id,
+                    $this->playerSummaries->response->players[0]->avatar,
+                    $this->playerSummaries->response->players[0]->avatarmedium,
+                    $this->playerSummaries->response->players[0]->avatarfull,
+                    $this->playerSummaries->response->players[0]->personaname,
+                    $timestamp,
+                    $this->steamId64,
+                    $this->steam_link,
+                    $id
+                ));
+            } else {
+
+                $cache = $sb->ddb->prepare("INSERT INTO `cache` (steamid,avatar,avatarmedium,avatarfull,personaname,timestamp,steamid64,steam_link)
                                         VALUES (:steamid,:avatar,:avatarmedium,:avatarfull,:personaname,:timestamp,:steamid64,:steam_link);");
-            $stmt->execute(array(
-                $this->steam_id,
-                $this->playerSummaries->response->players[0]->avatar,
-                $this->playerSummaries->response->players[0]->avatarmedium,
-                $this->playerSummaries->response->players[0]->avatarfull,
-                $this->playerSummaries->response->players[0]->personaname,
-                $timestamp,
-                $this->steamId64,
-                $this->steam_link
-            ));
+
+                $cache->execute(array(
+                    $this->steam_id,
+                    $this->playerSummaries->response->players[0]->avatar,
+                    $this->playerSummaries->response->players[0]->avatarmedium,
+                    $this->playerSummaries->response->players[0]->avatarfull,
+                    $this->playerSummaries->response->players[0]->personaname,
+                    $timestamp,
+                    $this->steamId64,
+                    $this->steam_link
+                ));
+            }
         } catch (Exception $ex) {
             throw new Exception($ex->getMessage());
         }

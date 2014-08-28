@@ -24,17 +24,27 @@ try {
 } catch (Exception $ex) {
     print "Oops something went wrong, please try again later.";
 }
+try {
+    $steam = new SteamIDConvert($steamid_user);
+    $steam->SteamIDCheck();
+} catch (Exception $ex) {
+
+    printf('<div class="alert alert-danger" role="alert">%s</div>', $ex->getMessage());
+    die();
+}
 if (isset($_POST['langSelect'])) {
     $lang = $language->getLang($_POST['langSelect']);
 } else {
     $lang = $language->getLang(DEFAULT_LANGUAGE);
 }
 
-$stmt = $sb->ddb->prepare("SELECT * FROM `cache` WHERE steamid=:steamid_user;");
-$stmt->bindParam(1, $steamid_user, PDO::PARAM_STR);
+$cacheTime = cache_time * 86400;
+$cacheTime = date('U') - $cacheTime;
+$stmt = $sb->ddb->prepare("SELECT * FROM `cache` WHERE `steamid` = ? AND timestamp > $cacheTime ORDER BY `id` DESC LIMIT 0,1;");
+$stmt->bindParam(1, $steam->steam_id);
 $stmt->execute();
-
-if ($stmt->rowCount() > 0) {
+echo $stmt->rowCount();
+if ($stmt->rowCount() == 1) {
 
     $userInfo = $stmt->fetch(PDO::FETCH_ASSOC);
     $username = $userInfo['personaname'];
@@ -45,15 +55,16 @@ if ($stmt->rowCount() > 0) {
 } else {
     //user not in cache
     try {
-        $steam = new SteamIDConvert($steamid_user);
-        $steam->SteamIDCheck()->fillCache();
-
+        $steam->fillCache();
         $username = $steam->playerSummaries->response->players[0]->personaname;
         $avatarfull = $steam->playerSummaries->response->players[0]->avatarfull;
         $steamID64 = $steam->steamId64;
         $steam_link = $steam->steam_link;
         $steam_id = $steam->steam_id;
     } catch (Exception $ex) {
+        if (DEBUG) {
+            print $ex->getMessage();
+        }
         @$socket = fsockopen('steamcommunity.com', 80, $errno, $errstr, 30);
         if (!$socket) {
             die("<h3>" . $lang->steamdown[0]->msg1 .

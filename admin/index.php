@@ -33,7 +33,7 @@ if (isset($_POST['loginSubmit'])) {
         ini_set('default_socket_timeout', 10);
         $json = @json_decode(@file_get_contents('http://1911.expert/dc-version/version.php'));
 
-        if (!empty($json) && VERSION != $json->version) {
+        if (!empty($json) && VERSION_NEW != $json->version) {
 
             $_SESSION['message'] = "<div class='alert alert-warning' role='alert'>There is an update available. ";
 

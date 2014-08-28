@@ -26,7 +26,7 @@
 if (!defined("NineteenEleven")) {
     define('NineteenEleven', TRUE);
 }
-echo "<!--Donations Control v" . VERSION . " written by NineteenEleven @ 1911.expert-->";
+echo "<!--Donations Control v" . VERSION_NEW . " written by NineteenEleven @ 1911.expert-->";
 require_once 'includes/config.php';
 require_once ABSDIR . 'includes/SourceBansClass.php';
 $donateLink = '/donations/donate.php';

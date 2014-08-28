@@ -2,7 +2,7 @@
 define('NineteenEleven', TRUE);
 require_once 'includes/config.php';
 require_once ABSDIR . 'includes/SourceBansClass.php';
-echo "<!--Donations Control v" . VERSION . " written by NineteenEleven @ 1911.expert-->";
+echo "<!--Donations Control v" . VERSION_NEW . " written by NineteenEleven @ 1911.expert-->";
 try {
     $sb = new sb;
     $gotDb = true;

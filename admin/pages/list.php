@@ -85,7 +85,7 @@ echo "<div class='listPage'></div>";
             $at = floor($active_total["sum(current_amount)"]);
             ?>
             <p class='navbar-text'><?php echo "Active total: $at | Current total:$totaltotal"; ?> </p>
-            <a class="navbar-brand navbar-right" href="http://nineteeneleven.info" target='_BLANK'>Donations Control v<?php echo VERSION; ?> by NineteenEleven</a>
+            <a class="navbar-brand navbar-right" href="http://nineteeneleven.info" target='_BLANK'>Donations Control v<?php echo VERSION_NEW; ?> by NineteenEleven</a>
         </div><!-- /.navbar-collapse -->
     </div><!-- /.container-fluid -->
 </nav>

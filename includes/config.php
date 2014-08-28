@@ -116,10 +116,12 @@ if (SB_DB) {
     define('SB_USER', DB_USER);
     define('SB_PASS', DB_PASS);
 }
-define('VERSION', '3.1.0');
+define('VERSION', '3.1.0'); //unused
 define('ABSDIR', substr(__DIR__, 0, stripos(__DIR__, 'includes')));
 define('DEBUG', false);
 set_exception_handler('exception_handler');
+
+require_once ABSDIR . 'includes/version.php';
 
 function exception_handler($ex) {
     require_once ABSDIR . "includes/LoggerClass.php";

@@ -7,7 +7,6 @@ try {
     $sb = new sb;
     $gotDb = true;
 } catch (Exception $ex) {
-    $log->logError($ex->getMessage(), $ex->getFile(), $ex->getLine());
     $gotDb = false;
 }
 
@@ -110,10 +109,10 @@ if (PLAYER_TRACKER && $gotDb) {
                 <?php
                 $groups = $sb->listGroups();
                 if ($groups !== false) {
-                    $i=0;
+                    $i = 0;
                     foreach ($groups as $group) {
-                        echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' "; 
-                        if($i ==0){
+                        echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' ";
+                        if ($i == 0) {
                             echo "checked";
                         }
                         echo " required value='" . $group['id'] . "' />" . $group['name'] . " </div>";

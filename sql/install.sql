@@ -1,31 +1,3 @@
--- phpMyAdmin SQL Dump
--- version 3.4.11.1deb2
--- http://www.phpmyadmin.net
---
--- Host: localhost
--- Generation Time: Aug 08, 2014 at 06:17 PM
--- Server version: 5.5.35
--- PHP Version: 5.4.4-14+deb7u8
-
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-
---
--- Database: `donations`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `cache`
---
-
 CREATE TABLE IF NOT EXISTS `cache` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `steamid` varchar(30) DEFAULT NULL,
@@ -39,12 +11,6 @@ CREATE TABLE IF NOT EXISTS `cache` (
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `custom_chatcolors`
---
-
 CREATE TABLE IF NOT EXISTS `custom_chatcolors` (
   `index` int(11) NOT NULL AUTO_INCREMENT,
   `identity` varchar(32) CHARACTER SET latin1 NOT NULL,
@@ -57,12 +23,6 @@ CREATE TABLE IF NOT EXISTS `custom_chatcolors` (
   UNIQUE KEY `identity` (`identity`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8  ;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `donations`
---
-
 CREATE TABLE IF NOT EXISTS `donations` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `steamId` varchar(24) NOT NULL,
@@ -73,11 +33,6 @@ CREATE TABLE IF NOT EXISTS `donations` (
   KEY `steamId` (`steamId`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `donors`
---
 
 CREATE TABLE IF NOT EXISTS `donors` (
   `user_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -97,12 +52,6 @@ CREATE TABLE IF NOT EXISTS `donors` (
   PRIMARY KEY (`user_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 ;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `groups`
---
-
 CREATE TABLE IF NOT EXISTS `groups` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `name` varchar(32) NOT NULL,
@@ -118,6 +67,24 @@ CREATE TABLE IF NOT EXISTS `groups` (
   UNIQUE KEY `group_id` (`group_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 ;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+CREATE TABLE IF NOT EXISTS `promotions` (
+  `id` int(8) NOT NULL AUTO_INCREMENT,
+  `type` int(1) NOT NULL,
+  `amount` int(8) NOT NULL,
+  `days` int(8) NOT NULL DEFAULT '0',
+  `number` int(8) NOT NULL DEFAULT '0',
+  `code` varchar(32) NOT NULL,
+  `descript` varchar(128) NOT NULL,
+  `timestamp` int(64) NOT NULL,
+  `active` int(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+CREATE TABLE IF NOT EXISTS `promotions_redeemed` (
+  `id` int(8) NOT NULL AUTO_INCREMENT,
+  `promo_id` int(8) NOT NULL,
+  `promo_code` varchar(32) NOT NULL,
+  `steam_id` varchar(32) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;

@@ -130,6 +130,8 @@ class sb extends groups {
             }
         }
 
+        $this->queryServers('sm_reloadadmins');
+
         return TRUE;
     }
 
@@ -173,6 +175,8 @@ class sb extends groups {
         } catch (Exception $ex) {
             throw new Exception($ex->getMessage());
         }
+
+        $this->queryServers('sm_reloadadmins');
 
         return TRUE;
     }

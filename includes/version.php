@@ -1,5 +1,5 @@
 <?php
 
-define('VERSION_NEW', '3.1.1');
+define('VERSION_NEW', '3.1.2');
 
 

@@ -96,7 +96,10 @@ if (PLAYER_TRACKER && $gotDb) {
             ;
             function submitDC() {
                 document.getElementById('donateForm').submit();
-            }
+            };
+            function changeAmount(dcAmt){
+                document.getElementById('donateAmt').value = dcAmt;
+            };
         </script>
     </head>
     <body id='original'>
@@ -105,18 +108,19 @@ if (PLAYER_TRACKER && $gotDb) {
         <form action="donate.php" target="blank" id="donateForm" method="post">
             <input type="image" src="images/btn_donateCC_LG.gif" form="donateForm" onclick='submitDC();' />
             <input type="hidden" name="donateForm" value="submit" id='submitBtn' />
-            <p>Amount: $<input type="text" name="amount" size="5" class="inputbox" value="5" required></p>
-                <?php
+            <p>Amount: $<input type="text" name="amount" size="5" class="inputbox" value="5" required id='donateAmt'></p>                
+            <?php
                 $groups = $sb->listGroups();
                 if ($groups !== false) {
                     $i = 0;
                     foreach ($groups as $group) {
+			
                         echo "<div class='group' style='display:inline-block;'><input type='radio' name='tier' ";
                         if ($i == 0) {
                             echo "checked";
                         }
-                        echo " required value='" . $group['id'] . "' />" . $group['name'] . " </div>";
-                        $i++;
+                         echo " required value='" . $group['id'] . "' onclick='changeAmount(\"".$group['minimum']."\");' />" . $group['name'] . " </div>";
+			$i++;
                     }
                 } else {
                     echo "No Groups are set up yet!";

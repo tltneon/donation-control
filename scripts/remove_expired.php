@@ -62,8 +62,8 @@ try {
         //send email
         if (sys_email && reminder_email) {
 
-            $mail_body = sprintf($reminder['subject'], $donor['username']);
-            $subject = sprintf($reminder['body'], $donor['username'], date('m/j/Y', $donor['expiration_date']));
+            $subject = sprintf($reminder['subject'], $donor['username']);
+            $mail_body = sprintf($reminder['body'], $donor['username'], date('m/j/Y', $donor['expiration_date']));
             $mailHeader = "From: " . $mail['name'] . " <" . $mail['email'] . ">\r\n";
             $to = $donor['email'];
             if (!DEBUG) {

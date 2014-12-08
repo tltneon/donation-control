@@ -26,13 +26,14 @@ echo "<div id='groupMgmt'>";
 echo "<div class='groupList'>";
 //$groups = $sb->listGroups //geting from parent page
 if ($groups) {
-
+    echo "<div class='row'>"
+    . "<div class='col-md-6'>";
     foreach ($groups as $group) {
         //echo "";
         if ($group['active'] == '0') {
-            echo "<div class='list-group' style='border:5px solid rgba(215, 40, 40, 0.8);'>";
+            echo "<div class='col-md-12' style='padding:0px; margin: 10px;border:5px solid rgba(215, 40, 40, 0.8);'>";
         } else {
-            echo "<div class='list-group' style='border:5px solid rgba(67, 130, 44, 0.8);'>";
+            echo "<div class='col-md-12' style='padding:0px;margin: 10px;border:5px solid rgba(67, 130, 44, 0.8);'>";
         }
 
         echo "<div class='list-group-item'>" . $group['name'] . "<a href='show_donations.php?loc=edit_groups&id=" . $group['id'] . "' title='Edit " . $group['name'] . "' style='cursor:context-menu;' ><span class='glyphicon glyphicon-cog'></span></a></div>";
@@ -77,35 +78,35 @@ if ($groups) {
 echo "</div>";
 echo "</div>";
 ?>
+<div class='col-md-6' >
+    <div class="panel panel-default groups-panel" style='min-width:600px;'>
+        <div class="panel-heading"><h3>Add new group</h3></div>
+        <div class="panel-body">
 
-<div class="panel panel-default groups-panel">
-    <div class="panel-heading"><h3>Add new group</h3></div>
-    <div class="panel-body">
+            <form action="show_donations.php?loc=group_management" method="POST" id="group_form">
 
-        <form action="show_donations.php?loc=group_management" method="POST" id="group_form">
+                <input type="hidden" name="group_name" id="group_name" value='group'>
 
-            <input type="hidden" name="group_name" id="group_name" value='group'>
+                <div class="input-group" title="To add a new group, Create an admin group and a server group in sourcebans. Add a new admin, and assign it to those groups (can be fake steamid). Then whatever Steam ID you put in Sourcebans, put in this box. ">
 
-            <div class="input-group" title="To add a new group, Create an admin group and a server group in sourcebans. Add a new admin, and assign it to those groups (can be fake steamid). Then whatever Steam ID you put in Sourcebans, put in this box. ">
+                    <span class="input-group-addon"><span class='glyphicon glyphicon-info-sign'></span> Steam ID</span>
+                    <input type="text" name="steamid_user" class="form-control" id="id-box" placeholder="SteamID in Sourcebans" required size="20">
+                </div>
 
-                <span class="input-group-addon"><span class='glyphicon glyphicon-info-sign'></span> Steam ID</span>
-                <input type="text" name="steamid_user" class="form-control" id="id-box" placeholder="SteamID in Sourcebans" required size="20">
-            </div>
+                <div class="input-group" title="31 divided by this number is how much perks will cost per month. eg 31/6.2 = $5/month">
+                    <span class="input-group-addon"><span class='glyphicon glyphicon-info-sign'></span> Multiplier</span>
+                    <input type="text" name="multiplier" class="form-control" id="multiplier" placeholder="6.2" required>
+                </div>
 
-            <div class="input-group" title="31 divided by this number is how much perks will cost per month. eg 31/6.2 = $5/month">
-                <span class="input-group-addon"><span class='glyphicon glyphicon-info-sign'></span> Multiplier</span>
-                <input type="text" name="multiplier" class="form-control" id="multiplier" placeholder="6.2" required>
-            </div>
+                <div class="input-group" title="Minimum dontnation that can be recieved. Use 0 for no minimum">
+                    <span class="input-group-addon"><span class='glyphicon glyphicon-info-sign'></span> Minimum $</span>
+                    <input type="text" name="minimum" class="form-control"  placeholder="5" required>
+                </div>
 
-            <div class="input-group" title="Minimum dontnation that can be recieved. Use 0 for no minimum">
-                <span class="input-group-addon"><span class='glyphicon glyphicon-info-sign'></span> Minimum $</span>
-                <input type="text" name="minimum" class="form-control"  placeholder="5" required>
-            </div>
-
-            <?php
-            if (CCC) {
-                echo"
-        <div class='panel panel-default panel-small inline half-width'>
+                <?php
+                if (CCC) {
+                    echo"
+        <div class='panel panel-default panel-small'>
             <h3 class='panel-title'>CCC enabled?</h3>
             <div class='panel-body'>
 
@@ -123,13 +124,15 @@ echo "</div>";
                 <input type='text' readonly value='No' class='form-control' style='cursor:context-menu;' >
             </div>
         </div>";
-            } else {
-                echo "<input type='hidden' name='ccc' value='0'>";
-            }
-            ?>
-    </div>
-</form>
-<input type="submit" form="group_form" class='btn btn-default' value = "Add New Group"/>
+                } else {
+                    echo "<input type='hidden' name='ccc' value='0'>";
+                }
+                ?>
+        </div>
 
+        </form>
+        <input type="submit" form="group_form" class='btn btn-default' value = "Add New Group"/>
+    </div>
+</div>
 </div>
 </div>
